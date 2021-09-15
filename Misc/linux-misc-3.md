@@ -1,7 +1,7 @@
 Introduction
 ---------------
 
-During the writing of the [linux-insides](https://0xax.gitbooks.io/linux-insides/content/) book I have received many emails with questions related to the [linker](https://en.wikipedia.org/wiki/Linker_%28computing%29) script and linker-related subjects. So I've decided to write this to cover some aspects of the linker and the linking of object files.
+During the writing of the [linux-insides](https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md) book I have received many emails with questions related to the [linker](https://en.wikipedia.org/wiki/Linker_%28computing%29) script and linker-related subjects. So I've decided to write this to cover some aspects of the linker and the linking of object files.
 
 If we open the `Linker` page on Wikipedia, we will see following definition:
 
@@ -86,7 +86,7 @@ The `nm` util allows us to see the list of symbols from the given object file. I
 * `main` - the main function;
 * `printf` - the function from the [glibc](https://en.wikipedia.org/wiki/GNU_C_Library) library. `main.c` does not know anything about it for now either.
 
-What can we understand from the output of `nm` so far? The `main.o` object file contains the local symbol `main` at address `0000000000000000` (it will be filled with correct address after is is linked), and two unresolved symbols. We can see all of this information in the disassembly output of the `main.o` object file:
+What can we understand from the output of `nm` so far? The `main.o` object file contains the local symbol `main` at address `0000000000000000` (it will be filled with the correct address after it is linked), and two unresolved symbols. We can see all of this information in the disassembly output of the `main.o` object file:
 
 ```
 $ objdump -S main.o
@@ -111,7 +111,7 @@ Disassembly of section .text:
   30:	c3                   	retq   
 ```
 
-Here we are interested only in the two `callq` operations. The two `callq` operations contain `linker stubs`, or the function name and offset from it to the next instruction. These stubs will be updated to the real addresses of the functions. We can see these functions' names with in the following `objdump` output:
+Here we are interested only in the two `callq` operations. The two `callq` operations contain `linker stubs`, or the function name and offset from it to the next instruction. These stubs will be updated to the real addresses of the functions. We can see these functions' names within the following `objdump` output:
 
 ```
 $ objdump -S -r main.o
@@ -140,7 +140,7 @@ Relocation is the process of connecting symbolic references with symbolic defini
   19:	89 c6                	mov    %eax,%esi
 ```
 
-Note the `e8 00 00 00 00` on the first line. The `e8` is the [opcode](https://en.wikipedia.org/wiki/Opcode) of the `call`, and the remainder of the line is a relative offset. So the `e8 00 00 00 00` contains a one-byte operation code followed by a four-byte address. Note that the `00 00 00 00` is 4-bytes. Why only 4-bytes if an address can be 8-bytes in a `x86_64` (64-bit) machine? Actually we compiled the `main.c` source code file with the `-mcmodel=small`! From the `gcc` man page:
+Note the `e8 00 00 00 00` on the first line. The `e8` is the [opcode](https://en.wikipedia.org/wiki/Opcode) of the `call`, and the remainder of the line is a relative offset. So the `e8 00 00 00 00` contains a one-byte operation code followed by a four-byte address. Note that the `00 00 00 00` is 4-bytes. Why only 4-bytes if an address can be 8-bytes in a `x86_64` (64-bit) machine? Actually, we compiled the `main.c` source code file with the `-mcmodel=small`! From the `gcc` man page:
 
 ```
 -mcmodel=small
@@ -148,7 +148,7 @@ Note the `e8 00 00 00 00` on the first line. The `e8` is the [opcode](https://en
 Generate code for the small code model: the program and its symbols must be linked in the lower 2 GB of the address space. Pointers are 64 bits. Programs can be statically or dynamically linked. This is the default code model.
 ```
 
-Of course we didn't pass this option to the `gcc` when we compiled the `main.c`, but it is the default. We know that our program will be linked in the lower 2 GB of the address space from the `gcc` manual extract above. Four bytes is therefore enough for this. So we have opcode of the `call` instruction and an unknown address. When we compile `main.c` with all its dependencies to an executable file, and then look at the factorial call we see:
+Of course we didn't pass this option to the `gcc` when we compiled the `main.c`, but it is the default. We know that our program will be linked in the lower 2 GB of the address space from the `gcc` manual extract above. Four bytes is therefore enough for this. So we have the opcode of the `call` instruction and an unknown address. When we compile `main.c` with all its dependencies to an executable file, and then look at the factorial call, we see:
 
 ```
 $ gcc main.c lib.c -o factorial | objdump -S factorial | grep factorial
@@ -197,11 +197,11 @@ So, the address of the `main` function is `0000000000400506` and is offset from 
 True
 ```
 
-So we add `0x18` and `0x5` to the address of the `call` instruction. The offset is measured from the address of the following instruction. Our call instruction is 5-bytes long (`e8 18 00 00 00`) and the `0x18` is the offset of the call after the `factorial` function. A compiler generally creates each object file with the program addresses starting at zero. But if a program is created from multiple object files, these will overlap.
+So we add `0x18` and `0x5` to the address of the `call` instruction. The offset is measured from the address of the following instruction. Our call instruction is 5-bytes long (`e8 18 00 00 00`) and the `0x18` is the offset after the call instruction to the `factorial` function. A compiler generally creates each object file with the program addresses starting at zero. But if a program is created from multiple object files, these will overlap.
 
 What we have seen in this section is the `relocation` process. This process assigns load addresses to the various parts of the program, adjusting the code and data in the program to reflect the assigned addresses.
 
-Ok, now that we know a little about linkers and relocation it is time to learn more about linkers by linking our object files.
+Ok, now that we know a little about linkers and relocation, it is time to learn more about linkers by linking our object files.
 
 GNU linker
 -----------------
@@ -569,7 +569,7 @@ Disassembly of section .data:
   ...
 ```
 
-Apart from the commands we have already seen, there are a few others. The first is the `ASSERT(exp, message)` that ensures that given expression is not zero. If it is zero, then exit the linker with an error code and print the given error message. If you've read about Linux kernel booting process in the [linux-insides](https://0xax.gitbooks.io/linux-insides/content/) book, you may know that the setup header of the Linux kernel has offset `0x1f1`. In the linker script of the Linux kernel we can find a check for this:
+Apart from the commands we have already seen, there are a few others. The first is the `ASSERT(exp, message)` that ensures that given expression is not zero. If it is zero, then exit the linker with an error code and print the given error message. If you've read about Linux kernel booting process in the [linux-insides](https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md) book, you may know that the setup header of the Linux kernel has offset `0x1f1`. In the linker script of the Linux kernel we can find a check for this:
 
 ```
 . = ASSERT(hdr == 0x1f1, "The setup header has the wrong offset!");
@@ -624,14 +624,14 @@ Conclusion
 
 This is the end of the post about linkers. We learned many things about linkers in this post, such as what is a linker and why it is needed, how to use it, etc..
 
-If you have any questions or suggestions, write me an [email](kuleshovmail@gmail.com) or ping [me](https://twitter.com/0xAX) on twitter.
+If you have any questions or suggestions, write me an [email](mailto:kuleshovmail@gmail.com) or ping [me](https://twitter.com/0xAX) on twitter.
 
 Please note that English is not my first language, and I am really sorry for any inconvenience. If you find any mistakes please let me know via email or send a PR.
 
 Links
 -----------------
 
-* [Book about Linux kernel insides](https://0xax.gitbooks.io/linux-insides/content/)
+* [Book about Linux kernel insides](https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md)
 * [linker](https://en.wikipedia.org/wiki/Linker_%28computing%29)
 * [object files](https://en.wikipedia.org/wiki/Object_file)
 * [glibc](https://en.wikipedia.org/wiki/GNU_C_Library)

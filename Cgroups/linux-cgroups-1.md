@@ -4,7 +4,7 @@ Control Groups
 Introduction
 --------------------------------------------------------------------------------
 
-This is the first part of the new chapter of the [linux insides](https://0xax.gitbooks.io/linux-insides/content/) book and as you may guess by part's name - this part will cover [control groups](https://en.wikipedia.org/wiki/Cgroups) or `cgroups` mechanism in the Linux kernel.
+This is the first part of the new chapter of the [linux insides](https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md) book and as you may guess by part's name - this part will cover [control groups](https://en.wikipedia.org/wiki/Cgroups) or `cgroups` mechanism in the Linux kernel.
 
 `Cgroups` are special mechanism provided by the Linux kernel which allows us to allocate kind of `resources` like processor time, number of processes per group, amount of memory per control group or combination of such resources for a process or set of processes. `Cgroups` are organized hierarchically and here this mechanism is similar to usual processes as they are hierarchical too and child `cgroups` inherit set of certain parameters from their parents. But actually they are not the same. The main differences between `cgroups` and normal processes that many different hierarchies of control groups may exist simultaneously in one time while normal process tree is always single. This was not a casual step because each control group hierarchy is attached to set of control group `subsystems`.
 
@@ -25,7 +25,7 @@ One `control group subsystem` represents one kind of resources like a processor 
 
 Each of these control group subsystems depends on related configuration option. For example the `cpuset` subsystem should be enabled via `CONFIG_CPUSETS` kernel configuration option, the `io` subsystem via `CONFIG_BLK_CGROUP` kernel configuration option and etc. All of these kernel configuration options may be found in the `General setup → Control Group support` menu:
 
-![menuconfig](http://oi66.tinypic.com/2rc2a9e.jpg)
+![menuconfig](images/menuconfig.png)
 
 You may see enabled control groups on your computer via [proc](https://en.wikipedia.org/wiki/Procfs) filesystem:
 
@@ -144,7 +144,7 @@ Let's go step by step through this line. The first `c` letter represents type of
 crw-rw-rw- 1 root tty 5, 0 Dec  3 22:48 /dev/tty
 ```
 
-see the first `c` letter in a permissions list. The second part is `5:0` is minor and major numbers of the device. You can see these numbers in the output of `ls` too. And the last `w` letter forbids tasks to write to the specified device. So let's start the `cgroup_test_script.sh` script:
+see the first `c` letter in a permissions list. The second part is `5:0` is major and minor numbers of the device. You can see these numbers in the output of `ls` too. And the last `w` letter forbids tasks to write to the specified device. So let's start the `cgroup_test_script.sh` script:
 
 ```
 ~$ ./cgroup_test_script.sh 
@@ -213,7 +213,7 @@ Control group /:
 │   └─6404 /bin/bash
 ```
 
-Now we know a little about `control groups` mechanism, how to use it manually and what's purpose of this mechanism. Time to look inside of the Linux kernel source code and start to dive into implementation of this mechanism.
+Now we know a little about `control groups` mechanism, how to use it manually and what's purpose of this mechanism. It's time to look inside of the Linux kernel source code and start to dive into implementation of this mechanism.
 
 Early initialization of control groups
 --------------------------------------------------------------------------------
@@ -226,7 +226,7 @@ Early initialization of `cgroups` starts from the call of the:
 cgroup_init_early();
 ```
 
-function in the [init/main.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c) during early initialization of the Linux kernel. This function is defined in the [kernel/cgroup.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/cgroup.c) source code file and starts from the definition of two following local variables:
+function in the [init/main.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c) during early initialization of the Linux kernel. This function is defined in the [kernel/cgroup/cgroup.c](https://github.com/torvalds/linux/blob/master/kernel/cgroup/cgroup.c) source code file and starts from the definition of two following local variables:
 
 ```C
 int __init cgroup_init_early(void)
@@ -378,7 +378,7 @@ for_each_subsys(ss, i) {
 }
 ```
 
-The `for_each_subsys` here is a macro which is defined in the [kernel/cgroup.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/cgroup.c) source code file and just expands to the `for` loop over `cgroup_subsys` array. Definition of this array may be found in the same source code file and it looks in a little unusual way:
+The `for_each_subsys` here is a macro which is defined in the [kernel/cgroup/cgroup.c](https://github.com/torvalds/linux/blob/master/kernel/cgroup/cgroup.c) source code file and just expands to the `for` loop over `cgroup_subsys` array. Definition of this array may be found in the same source code file and it looks in a little unusual way:
 
 ```C
 #define SUBSYS(_x) [_x ## _cgrp_id] = &_x ## _cgrp_subsys,
@@ -403,7 +403,7 @@ SUBSYS(cpu)
 ...
 ```
 
-This works because of `#undef` statement after first definition of the `SUBSYS` macro. Look at the `&_x ## _cgrp_subsys` expression. The `##` operator concatenates right and left expression in a `C` macro. So as we passed `cpuset`, `cpu` and etc., to the `SUBSYS` macro, somewhere `cpuset_cgrp_subsys`, `cp_cgrp_subsys` should be defined. And that's true. If you will look in the [kernel/cpuset.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/cpuset.c) source code file, you will see this definition:
+This works because of `#undef` statement after first definition of the `SUBSYS` macro. Look at the `&_x ## _cgrp_subsys` expression. The `##` operator concatenates right and left expression in a `C` macro. So as we passed `cpuset`, `cpu` and etc., to the `SUBSYS` macro, somewhere `cpuset_cgrp_subsys`, `cpu_cgrp_subsys` should be defined. And that's true. If you will look in the [kernel/cgroup/cpuset.c](https://github.com/torvalds/linux/blob/master/kernel/cgroup/cpuset.c) source code file, you will see this definition:
 
 ```C
 struct cgroup_subsys cpuset_cgrp_subsys = {
@@ -448,4 +448,4 @@ Links
 * [bash](https://www.gnu.org/software/bash/)
 * [docker](https://en.wikipedia.org/wiki/Docker_\(software\))
 * [perf events](https://en.wikipedia.org/wiki/Perf_\(Linux\))
-* [Previous chapter](https://0xax.gitbooks.io/linux-insides/content/MM/linux-mm-1.html)
+* [Previous chapter](https://0xax.gitbook.io/linux-insides/summary/mm/linux-mm-1)

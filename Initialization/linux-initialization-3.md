@@ -76,7 +76,7 @@ After microcode was loaded we can see the check of the `console_loglevel` and th
 Move on init pages
 --------------------------------------------------------------------------------
 
-In the next step, as we have copied `boot_params` structure, we need to move from the early page tables to the page tables for initialization process. We already set early page tables for switchover, you can read about it in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-1.html) and dropped all it in the `reset_early_page_tables` function (you can read about it in the previous part too) and kept only kernel high mapping. After this we call:
+In the next step, as we have copied `boot_params` structure, we need to move from the early page tables to the page tables for initialization process. We already set early page tables for switchover, you can read about it in the previous [part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-1) and dropped all it in the `reset_early_page_tables` function (you can read about it in the previous part too) and kept only kernel high mapping. After this we call:
 
 ```C
 	clear_page(init_level4_pgt);
@@ -250,7 +250,7 @@ lowmem = min(lowmem, LOWMEM_CAP);
 memblock_reserve(lowmem, 0x100000 - lowmem);
 ```
 
-`memblock_reserve` function is defined at [mm/block.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/mm/block.c) and takes two parameters:
+`memblock_reserve` function is defined at [mm/memblock.c](https://github.com/torvalds/linux/blob/master/mm/memblock.c) and takes two parameters:
 
 * base physical address;
 * region size.
@@ -392,7 +392,7 @@ where `NODES_SHIFT` depends on `CONFIG_NODES_SHIFT` configuration parameter and 
 #endif
 ```
 
-`memblick_set_region_node` function just fills `nid` field from `memblock_region` with the given value:
+`memblock_set_region_node` function just fills `nid` field from `memblock_region` with the given value:
 
 ```C
 static inline void memblock_set_region_node(struct memblock_region *r, int nid)

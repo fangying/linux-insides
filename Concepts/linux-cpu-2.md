@@ -10,7 +10,7 @@ Introduction
 * [lib/cpumask.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/lib/cpumask.c)
 * [kernel/cpu.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/cpu.c)
 
-As comment says from the [include/linux/cpumask.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/cpumask.h): Cpumasks provide a bitmap suitable for representing the set of CPU's in a system, one bit position per CPU number. We already saw a bit about cpumask in the `boot_cpu_init` function from the [Kernel entry point](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-4.html) part. This function makes first boot cpu online, active and etc...:
+As comment says from the [include/linux/cpumask.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/cpumask.h): Cpumasks provide a bitmap suitable for representing the set of CPU's in a system, one bit position per CPU number. We already saw a bit about cpumask in the `boot_cpu_init` function from the [Kernel entry point](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-4) part. This function makes first boot cpu online, active and etc...:
 
 ```C
 set_cpu_online(cpu, true);
@@ -59,7 +59,7 @@ where `BITS_TO_LONGS`:
 As we are focusing on the `x86_64` architecture, `unsigned long` is 8-bytes size and our array will contain only one element:
 
 ```
-(((8) + (8) - 1) / (8)) = 1
+(((8) + (64) - 1) / (64)) = 1
 ```
 
 `NR_CPUS` macro represents the number of CPUs in the system and depends on the `CONFIG_NR_CPUS` macro which is defined in [include/linux/threads.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/threads.h) and looks like this:

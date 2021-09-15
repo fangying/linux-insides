@@ -4,7 +4,7 @@ Kernel initialization. Part 10.
 End of the linux kernel initialization process
 ================================================================================
 
-This is tenth part of the chapter about linux kernel [initialization process](https://0xax.gitbooks.io/linux-insides/content/Initialization/index.html) and in the [previous part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-9.html) we saw the initialization of the [RCU](http://en.wikipedia.org/wiki/Read-copy-update) and stopped on the call of the `acpi_early_init` function. This part will be the last part of the [Kernel initialization process](https://0xax.gitbooks.io/linux-insides/content/Initialization/index.html) chapter, so let's finish it.
+This is tenth part of the chapter about linux kernel [initialization process](https://0xax.gitbook.io/linux-insides/summary/initialization) and in the [previous part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-9) we saw the initialization of the [RCU](http://en.wikipedia.org/wiki/Read-copy-update) and stopped on the call of the `acpi_early_init` function. This part will be the last part of the [Kernel initialization process](https://0xax.gitbook.io/linux-insides/summary/initialization) chapter, so let's finish it.
 
 After the call of the `acpi_early_init` function from the [init/main.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c), we can see the following code:
 
@@ -66,7 +66,7 @@ void __init cred_init(void)
 }
 ```
 
-more about credentials you can read in the [Documentation/security/credentials.txt](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/Documentation/security/credentials.txt). Next step is the `fork_init` function from the [kernel/fork.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/fork.c). The `fork_init` function allocates cache for the `task_struct`. Let's look on the implementation of the `fork_init`. First of all we can see definitions of the `ARCH_MIN_TASKALIGN` macro and creation of a slab where task_structs will be allocated:
+more about credentials you can read in the [Documentation/security/credentials.txt](https://github.com/torvalds/linux/blob/master/Documentation/security/credentials.rst). Next step is the `fork_init` function from the [kernel/fork.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/fork.c). The `fork_init` function allocates cache for the `task_struct`. Let's look on the implementation of the `fork_init`. First of all we can see definitions of the `ARCH_MIN_TASKALIGN` macro and creation of a slab where task_structs will be allocated:
 
 ```C
 #ifndef CONFIG_ARCH_TASK_STRUCT_ALLOCATOR
@@ -185,7 +185,7 @@ nrpages = (nr_free_buffer_pages() * 10) / 100;
 max_buffer_heads = nrpages * (PAGE_SIZE / sizeof(struct buffer_head));
 ```
 
-which will be equal to the `10%` of the `ZONE_NORMAL` (all RAM from the 4GB on the `x86_64`). The next function after the `buffer_init` is - `vfs_caches_init`. This function allocates `SLAB` caches and hashtable for different [VFS](http://en.wikipedia.org/wiki/Virtual_file_system) caches. We already saw the `vfs_caches_init_early` function in the eighth part of the linux kernel [initialization process](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-8.html) which initialized caches for `dcache` (or directory-cache) and [inode](http://en.wikipedia.org/wiki/Inode) cache. The `vfs_caches_init` function makes post-early initialization of the `dcache` and `inode` caches, private data cache, hash tables for the mount points, etc. More details about [VFS](http://en.wikipedia.org/wiki/Virtual_file_system) will be described in the separate part. After this we can see `signals_init` function. This function is defined in the [kernel/signal.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/signal.c) and allocates a cache for the `sigqueue` structures which represents queue of the real time signals. The next function is `page_writeback_init`. This function initializes the ratio for the dirty pages. Every low-level page entry contains the `dirty` bit which indicates whether a page has been written to after been loaded into memory.
+which will be equal to the `10%` of the `ZONE_NORMAL` (all RAM from the 4GB on the `x86_64`). The next function after the `buffer_init` is - `vfs_caches_init`. This function allocates `SLAB` caches and hashtable for different [VFS](http://en.wikipedia.org/wiki/Virtual_file_system) caches. We already saw the `vfs_caches_init_early` function in the eighth part of the linux kernel [initialization process](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-8) which initialized caches for `dcache` (or directory-cache) and [inode](http://en.wikipedia.org/wiki/Inode) cache. The `vfs_caches_init` function makes post-early initialization of the `dcache` and `inode` caches, private data cache, hash tables for the mount points, etc. More details about [VFS](http://en.wikipedia.org/wiki/Virtual_file_system) will be described in the separate part. After this we can see `signals_init` function. This function is defined in the [kernel/signal.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/signal.c) and allocates a cache for the `sigqueue` structures which represents queue of the real time signals. The next function is `page_writeback_init`. This function initializes the ratio for the dirty pages. Every low-level page entry contains the `dirty` bit which indicates whether a page has been written to after been loaded into memory.
 
 Creation of the root for the procfs
 --------------------------------------------------------------------------------
@@ -314,7 +314,7 @@ void init_idle_bootup_task(struct task_struct *idle)
 }
 ```
 
-where `idle` class is a low task priority and tasks can be run only when the processor doesn't have anything to run besides this tasks. The second function `schedule_preempt_disabled` disables preempt in `idle` tasks. And the third function `cpu_startup_entry` is defined in the [kernel/sched/idle.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/sched/idle.c) and calls `cpu_idle_loop` from the [kernel/sched/idle.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/sched/idle.c). The `cpu_idle_loop` function works as process with `PID = 0` and works in the background. Main purpose of the `cpu_idle_loop` is to consume the idle CPU cycles. When there is no process to run, this process starts to work. We have one process with `idle` scheduling class (we just set the `current` task to the `idle` with the call of the `init_idle_bootup_task` function), so the `idle` thread does not do useful work but just checks if there is an active task to switch to: 
+where `idle` class is a low task priority and tasks can be run only when the processor doesn't have anything to run besides this tasks. The second function `schedule_preempt_disabled` disables preempt in `idle` tasks. And the third function `cpu_startup_entry` is defined in the [kernel/sched/idle.c](https://github.com/torvalds/linux/blob/master/kernel/sched/idle.c) and calls `cpu_idle_loop` from the [kernel/sched/idle.c](https://github.com/torvalds/linux/blob/master/kernel/sched/idle.c). The `cpu_idle_loop` function works as process with `PID = 0` and works in the background. Main purpose of the `cpu_idle_loop` is to consume the idle CPU cycles. When there is no process to run, this process starts to work. We have one process with `idle` scheduling class (we just set the `current` task to the `idle` with the call of the `init_idle_bootup_task` function), so the `idle` thread does not do useful work but just checks if there is an active task to switch to: 
 
 ```C
 static void cpu_idle_loop(void)
@@ -440,7 +440,7 @@ That's all! Linux kernel initialization process is finished!
 Conclusion
 --------------------------------------------------------------------------------
 
-It is the end of the tenth part about the linux kernel [initialization process](https://0xax.gitbooks.io/linux-insides/content/Initialization/index.html). It is not only the `tenth` part, but also is the last part which describes initialization of the linux kernel. As I wrote in the first [part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-1.html) of this chapter, we will go through all steps of the kernel initialization and we did it. We started at the first architecture-independent function - `start_kernel` and finished with the launch of the first `init` process in the our system. I skipped details about different subsystem of the kernel, for example I almost did not cover scheduler, interrupts, exception handling, etc. From the next part we will start to dive to the different kernel subsystems. Hope it will be interesting.
+It is the end of the tenth part about the linux kernel [initialization process](https://0xax.gitbook.io/linux-insides/summary/initialization). It is not only the `tenth` part, but also is the last part which describes initialization of the linux kernel. As I wrote in the first [part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-1) of this chapter, we will go through all steps of the kernel initialization and we did it. We started at the first architecture-independent function - `start_kernel` and finished with the launch of the first `init` process in the our system. I skipped details about different subsystem of the kernel, for example I almost did not cover scheduler, interrupts, exception handling, etc. From the next part we will start to dive to the different kernel subsystems. Hope it will be interesting.
 
 If you have any questions or suggestions write me a comment or ping me at [twitter](https://twitter.com/0xAX).
 
@@ -452,7 +452,7 @@ Links
 * [SLAB](http://en.wikipedia.org/wiki/Slab_allocation)
 * [xsave](http://www.felixcloutier.com/x86/XSAVES.html)
 * [FPU](http://en.wikipedia.org/wiki/Floating-point_unit)
-* [Documentation/security/credentials.txt](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/Documentation/security/credentials.txt)
+* [Documentation/security/credentials.txt](https://github.com/torvalds/linux/blob/master/Documentation/security/credentials.rst)
 * [Documentation/x86/x86_64/mm](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/Documentation/x86/x86_64/mm.txt)
 * [RCU](http://en.wikipedia.org/wiki/Read-copy-update)
 * [VFS](http://en.wikipedia.org/wiki/Virtual_file_system)
@@ -470,4 +470,4 @@ Links
 * [Tmpfs](http://en.wikipedia.org/wiki/Tmpfs)
 * [initrd](http://en.wikipedia.org/wiki/Initrd)
 * [panic](http://en.wikipedia.org/wiki/Kernel_panic)
-* [Previous part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-9.html)
+* [Previous part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-9)

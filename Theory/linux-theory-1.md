@@ -4,7 +4,7 @@ Paging
 Introduction
 --------------------------------------------------------------------------------
 
-In the fifth [part](https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-5.html) of the series `Linux kernel booting process` we learned about what the kernel does in its earliest stage. In the next step the kernel will initialize different things like `initrd` mounting, lockdep initialization, and many many other things, before we can see how the kernel runs the first init process.
+In the fifth [part](https://0xax.gitbook.io/linux-insides/summary/booting/linux-bootstrap-5) of the series `Linux kernel booting process` we learned about what the kernel does in its earliest stage. In the next step the kernel will initialize different things like `initrd` mounting, lockdep initialization, and many many other things, before we can see how the kernel runs the first init process.
 
 Yeah, there will be many different things, but many many and once again many work with **memory**.
 
@@ -80,7 +80,7 @@ These fields have the following meanings:
 
 * Bits 63:52 - reserved must be 0.
 * Bits 51:12 - stores the address of the top level paging structure;
-* Reserved   - reserved must be 0;
+* Bits 11: 5 - reserved must be 0;
 * Bits 4 : 3 - PWT or Page-Level Writethrough and PCD or Page-level cache disable indicate. These bits control the way the page or Page Table is handled by the hardware cache;
 * Bits 2 : 0 - ignored;
 
@@ -93,9 +93,9 @@ The linear address translation is following:
 
 schematically, we can imagine it like this:
 
-![4-level paging](http://oi58.tinypic.com/207mb0x.jpg)
+![4-level paging](images/4_level_paging.png)
 
-Every access to a linear address is either a supervisor-mode access or a user-mode access. This access is determined by the `CPL` (current privilege level). If `CPL < 3` it is a supervisor mode access level, otherwise it is a user mode access level. For example, the top level page table entry contains access bits and has the following structure:
+Every access to a linear address is either a supervisor-mode access or a user-mode access. This access is determined by the `CPL` (current privilege level). If `CPL < 3` it is a supervisor mode access level, otherwise it is a user mode access level. For example, the top level page table entry contains access bits and has the following structure (See [arch/x86/include/asm/pgtable_types.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/include/asm/pgtable_types.h) for the bit offset definitions):
 
 ```
 63  62                  52 51                                                    32
@@ -259,4 +259,4 @@ Links
 * [MMU](http://en.wikipedia.org/wiki/Memory_management_unit)
 * [ELF64](https://github.com/0xAX/linux-insides/blob/master/Theory/ELF.md)
 * [Documentation/x86/x86_64/mm.txt](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/Documentation/x86/x86_64/mm.txt)
-* [Last part - Kernel booting process](https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-5.html)
+* [Last part - Kernel booting process](https://0xax.gitbook.io/linux-insides/summary/booting/linux-bootstrap-5)

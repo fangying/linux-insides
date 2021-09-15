@@ -4,7 +4,7 @@ System calls in the Linux kernel. Part 4.
 How does the Linux kernel run a program
 --------------------------------------------------------------------------------
 
-This is the fourth part of the [chapter](https://0xax.gitbooks.io/linux-insides/content/SysCall/index.html) that describes [system calls](https://en.wikipedia.org/wiki/System_call) in the Linux kernel and as I wrote in the conclusion of the [previous](https://0xax.gitbooks.io/linux-insides/content/SysCall/linux-syscall-3.html) - this part will be last in this chapter. In the previous part we stopped at the two new concepts:
+This is the fourth part of the [chapter](https://0xax.gitbook.io/linux-insides/summary/syscall) that describes [system calls](https://en.wikipedia.org/wiki/System_call) in the Linux kernel and as I wrote in the conclusion of the [previous](https://0xax.gitbook.io/linux-insides/summary/syscall/linux-syscall-3) - this part will be last in this chapter. In the previous part we stopped at the two new concepts:
 
 * `vsyscall`;
 * `vDSO`;
@@ -20,7 +20,7 @@ There are many different ways to launch an application from a user perspective. 
 
 In this part we will consider the way when we just launch an application from the shell. As you know, the standard way to launch an application from shell is the following: We just launch a [terminal emulator](https://en.wikipedia.org/wiki/Terminal_emulator) application and just write the name of the program and pass or not arguments to our program, for example:
 
-![ls shell](http://i66.tinypic.com/214w6so.jpg)
+![ls shell](images/ls_shell.png)
 
 Let's consider what does occur when we launch an application from the shell, what does shell do when we write program name, what does Linux kernel do etc. But before we will start to consider these interesting things, I want to warn that this book is about the Linux kernel. That's why we will see Linux kernel insides related stuff mostly in this part. We will not consider in details what does shell do, we will not consider complex cases, for example subshells etc.
 
@@ -73,7 +73,7 @@ So, a user application (`bash` in our case) calls the system call and as we alre
 execve system call
 --------------------------------------------------------------------------------
 
-We saw preparation before a system call called by a user application and after a system call handler finished its work in the second [part](https://0xax.gitbooks.io/linux-insides/content/SysCall/linux-syscall-2.html) of this chapter. We stopped at the call of the `execve` system call in the previous paragraph. This system call defined in the [fs/exec.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/fs/exec.c) source code file and as we already know it takes three arguments:
+We saw preparation before a system call called by a user application and after a system call handler finished its work in the second [part](https://0xax.gitbook.io/linux-insides/summary/syscall/linux-syscall-2) of this chapter. We stopped at the call of the `execve` system call in the previous paragraph. This system call defined in the [fs/exec.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/fs/exec.c) source code file and as we already know it takes three arguments:
 
 ```
 SYSCALL_DEFINE3(execve,
@@ -123,7 +123,7 @@ if (retval)
 	goto out_ret;
 ```
 
-We need to call this function to eliminate potential leak of the execve'd binary's [file descriptor](https://en.wikipedia.org/wiki/File_descriptor). In the next step we start preparation of the `bprm` that represented by the `struct linux_binprm` structure (defined in the [include/linux/binfmts.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/linux/binfmts.h) header file). The `linux_binprm` structure is used to hold the arguments that are used when loading binaries. For example it contains `vma` field which has `vm_area_struct` type and represents single memory area over a contiguous interval in a given address space where our application will be loaded, `mm` field which is memory descriptor of the binary, pointer to the top of memory and many other different fields.
+We need to call this function to eliminate potential leak of the execve'd binary's [file descriptor](https://en.wikipedia.org/wiki/File_descriptor). In the next step we start preparation of the `bprm` that represented by the `struct linux_binprm` structure (defined in the [include/linux/binfmts.h](https://github.com/torvalds/linux/blob/master/include/linux/binfmts.h) header file). The `linux_binprm` structure is used to hold the arguments that are used when loading binaries. For example it contains `vma` field which has `vm_area_struct` type and represents single memory area over a contiguous interval in a given address space where our application will be loaded, `mm` field which is memory descriptor of the binary, pointer to the top of memory and many other different fields.
 
 First of all we allocate memory for this structure with the `kzalloc` function and check the result of the allocation:
 
@@ -199,7 +199,7 @@ if (retval)
 	goto out_unmark;
 ```
 
-The `bprm_mm_init` defined in the same source code file and as we can understand from the function's name, it makes initialization of the memory descriptor or in other words the `bprm_mm_init` function initializes `mm_struct` structure. This structure defined in the [include/linux/mm_types.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/mm_types.h) header file and represents address space of a process. We will not consider implementation of the `bprm_mm_init` function because we do not know many important stuff related to the Linux kernel memory manager, but we just need to know that this function initializes `mm_struct` and populate it with a temporary stack `vm_area_struct`.
+The `bprm_mm_init` defined in the same source code file and as we can understand from the function's name, it makes initialization of the memory descriptor or in other words the `bprm_mm_init` function initializes `mm_struct` structure. This structure defined in the [include/linux/mm_types.h](https://github.com/torvalds/linux/blob/master/include/linux/mm_types.h) header file and represents address space of a process. We will not consider implementation of the `bprm_mm_init` function because we do not know many important stuff related to the Linux kernel memory manager, but we just need to know that this function initializes `mm_struct` and populate it with a temporary stack `vm_area_struct`.
 
 After this we calculate the count of the command line arguments which are were passed to the our executable binary, the count of the environment variables and set it to the `bprm->argc` and `bprm->envc` respectively:
 
@@ -334,7 +334,7 @@ if (!elf_phdata)
 	goto out;
 ```
 
-that describes [segments](https://en.wikipedia.org/wiki/Memory_segmentation). Read the `program interpreter` and libraries that linked with the our executable binary file from disk and load it to memory. The `program interpreter` specified in the `.interp` section of the executable file and as you can read in the part that describes [Linkers](https://0xax.gitbooks.io/linux-insides/content/Misc/linux-misc-3.html) it is - `/lib64/ld-linux-x86-64.so.2` for the `x86_64`. It setups the stack and map `elf` binary into the correct location in memory. It maps the [bss](https://en.wikipedia.org/wiki/.bss) and the [brk](http://man7.org/linux/man-pages/man2/sbrk.2.html) sections and does many many other different things to prepare executable file to execute.
+that describes [segments](https://en.wikipedia.org/wiki/Memory_segmentation). Read the `program interpreter` and libraries that linked with the our executable binary file from disk and load it to memory. The `program interpreter` specified in the `.interp` section of the executable file and as you can read in the part that describes [Linkers](https://0xax.gitbook.io/linux-insides/summary/misc/linux-misc-3) it is - `/lib64/ld-linux-x86-64.so.2` for the `x86_64`. It setups the stack and map `elf` binary into the correct location in memory. It maps the [bss](https://en.wikipedia.org/wiki/.bss) and the [brk](http://man7.org/linux/man-pages/man2/sbrk.2.html) sections and does many many other different things to prepare executable file to execute.
 
 In the end of the execution of the `load_elf_binary` we call the `start_thread` function and pass three arguments to it:
 
@@ -396,7 +396,7 @@ Conclusion
 
 This is the end of the fourth part of the about the system calls concept in the Linux kernel. We saw almost all related stuff to the `system call` concept in these four parts. We started from the understanding of the `system call` concept, we have learned what is it and why do users applications need in this concept. Next we saw how does the Linux handle a system call from a user application. We met two similar concepts to the `system call` concept, they are `vsyscall` and `vDSO` and finally we saw how does Linux kernel run a user program.
 
-If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
+If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](mailto:anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
 
 **Please note that English is not my first language and I am really sorry for any inconvenience. If you found any mistakes please send me PR to [linux-insides](https://github.com/0xAX/linux-insides).**
 
@@ -424,7 +424,7 @@ Links
 * [Alpha](https://en.wikipedia.org/wiki/DEC_Alpha)
 * [FDPIC](http://elinux.org/UClinux_Shared_Library#FDPIC_ELF)
 * [segments](https://en.wikipedia.org/wiki/Memory_segmentation)
-* [Linkers](https://0xax.gitbooks.io/linux-insides/content/Misc/linux-misc-3.html)
+* [Linkers](https://0xax.gitbook.io/linux-insides/summary/misc/linux-misc-3)
 * [Processor register](https://en.wikipedia.org/wiki/Processor_register)
 * [instruction pointer](https://en.wikipedia.org/wiki/Program_counter)
-* [Previous part](https://0xax.gitbooks.io/linux-insides/content/SysCall/linux-syscall-3.html)
+* [Previous part](https://0xax.gitbook.io/linux-insides/summary/syscall/linux-syscall-3)

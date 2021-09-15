@@ -61,11 +61,11 @@ This structure presents the root of a radix tree and contains three fields:
 
 The first field we will discuss is `gfp_mask`:
 
-Low-level kernel memory allocation functions take a set of flags as - `gfp_mask`, which describes how that allocation is to be performed. These `GFP_` flags which control the allocation process can have following values: (`GF_NOIO` flag) means sleep and wait for memory, (`__GFP_HIGHMEM` flag) means high memory can be used, (`GFP_ATOMIC` flag) means the allocation process has high-priority and can't sleep etc.
+Low-level kernel memory allocation functions take a set of flags as - `gfp_mask`, which describes how that allocation is to be performed. These `GFP_` flags which control the allocation process can have following values: (`GFP_NOIO` flag) means allocation can block but must not initiate disk I/O; (`__GFP_HIGHMEM` flag) means either ZONE_HIGHMEM or ZONE_NORMAL memory can be used; (`GFP_ATOMIC` flag) means the allocation is high-priority and must not sleep, etc.
 
-* `GFP_NOIO` - can sleep and wait for memory;
-* `__GFP_HIGHMEM` - high memory can be used;
-* `GFP_ATOMIC` - allocation process is high-priority and can't sleep;
+* `GFP_NOIO` - allcation can block but must not initiate disk I/O;
+* `__GFP_HIGHMEM` - either ZONE_HIGHMEM or ZONE_NORMAL can be used;
+* `GFP_ATOMIC` - allocation process is high-priority and must not sleep;
 
 etc.
 
@@ -159,7 +159,7 @@ The first `radix_tree_insert` function takes three parameters:
 
 The `radix_tree_delete` function takes the same set of parameters as the `radix_tree_insert`, but without data.
 
-The search in a radix tree implemented in two ways:
+Searching through a radix tree is implemented in three ways:
 
 * `radix_tree_lookup`;
 * `radix_tree_gang_lookup`;

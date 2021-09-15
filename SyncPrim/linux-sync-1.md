@@ -4,9 +4,9 @@ Synchronization primitives in the Linux kernel. Part 1.
 Introduction
 --------------------------------------------------------------------------------
 
-This part opens a new chapter in the [linux-insides](https://0xax.gitbooks.io/linux-insides/content/) book. Timers and time management related stuff was described in the previous [chapter](https://0xax.gitbooks.io/linux-insides/content/Timers/index.html). Now time to go next. As you may understand from the part's title, this chapter will describe [synchronization](https://en.wikipedia.org/wiki/Synchronization_%28computer_science%29) primitives in the Linux kernel.
+This part opens a new chapter in the [linux-insides](https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md) book. Timers and time management related stuff was described in the previous [chapter](https://0xax.gitbook.io/linux-insides/summary/timers/). Now it's time to move on to the next topic. As you probably recognized from the title, this chapter will describe the [synchronization](https://en.wikipedia.org/wiki/Synchronization_%28computer_science%29) primitives in the Linux kernel.
 
-As always, before we will consider something synchronization related, we will try to know what `synchronization primitive` is in general. Actually, synchronization primitive is a software mechanism which provides the ability to two or more [parallel](https://en.wikipedia.org/wiki/Parallel_computing) processes or threads to not execute simultaneously on the same segment of a code. For example, let's look on the following piece of code:
+As always, we will try to know what a `synchronization primitive` in general is before we deal with any synchronization-related issues. Actually, a synchronization primitive is a software mechanism, that ensures that two or more [parallel](https://en.wikipedia.org/wiki/Parallel_computing) processes or threads are not running simultaneously on the same code segment. For example, let's look at the following piece of code:
 
 ```C
 mutex_lock(&clocksource_mutex);
@@ -22,7 +22,7 @@ clocksource_select();
 mutex_unlock(&clocksource_mutex);
 ```
 
-from the [kernel/time/clocksource.c](https://github.com/torvalds/linux/master/kernel/time/clocksource.c) source code file. This code is from the `__clocksource_register_scale` function which adds the given [clocksource](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-2.html) to the clock sources list. This function produces different operations on a list with registered clock sources. For example, the `clocksource_enqueue` function adds the given clock source to the list with registered clocksources - `clocksource_list`. Note that these lines of code wrapped to two functions: `mutex_lock` and `mutex_unlock` which takes one parameter - the `clocksource_mutex` in our case.
+from the [kernel/time/clocksource.c](https://github.com/torvalds/linux/blob/master/kernel/time/clocksource.c) source code file. This code is from the `__clocksource_register_scale` function which adds the given [clocksource](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-2) to the clock sources list. This function produces different operations on a list with registered clock sources. For example, the `clocksource_enqueue` function adds the given clock source to the list with registered clocksources - `clocksource_list`. Note that these lines of code wrapped to two functions: `mutex_lock` and `mutex_unlock` which takes one parameter - the `clocksource_mutex` in our case.
 
 These functions represent locking and unlocking based on [mutex](https://en.wikipedia.org/wiki/Mutual_exclusion) synchronization primitive. As `mutex_lock` will be executed, it allows us to prevent the situation when two or more threads will execute this code while the `mutex_unlock` will not be executed by process-owner of the mutex. In other words, we prevent parallel operations on a `clocksource_list`. Why do we need `mutex` here? What if two parallel processes will try to register a clock source. As we already know, the `clocksource_enqueue` function adds the given clock source to the `clocksource_list` list right after a clock source in the list which has the biggest rating (a registered clock source which has the highest frequency in the system):
 
@@ -43,7 +43,7 @@ static void clocksource_enqueue(struct clocksource *cs)
 
 If two parallel processes will try to do it simultaneously, both process may found the same `entry` may occur [race condition](https://en.wikipedia.org/wiki/Race_condition) or in other words, the second process which will execute `list_add`, will overwrite a clock source from the first thread.
 
-Besides this simple example, synchronization primitives are ubiquitous in the Linux kernel. If we will go through the previous [chapter](https://0xax.gitbooks.io/linux-insides/content/Timers/index.html) or other chapters again or if we will look at the Linux kernel source code in general, we will meet many places like this. We will not consider how `mutex` is implemented in the Linux kernel. Actually, the Linux kernel provides a set of different synchronization primitives like:
+Besides this simple example, synchronization primitives are ubiquitous in the Linux kernel. If we will go through the previous [chapter](https://0xax.gitbook.io/linux-insides/summary/timers/) or other chapters again or if we will look at the Linux kernel source code in general, we will meet many places like this. We will not consider how `mutex` is implemented in the Linux kernel. Actually, the Linux kernel provides a set of different synchronization primitives like:
 
 * `mutex`;
 * `semaphores`; 
@@ -79,7 +79,7 @@ typedef struct spinlock {
 } spinlock_t;
 ```
 
-and located in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/master/include/linux/spinlock_types.h) header file. We may see that its implementation depends on the state of the `CONFIG_DEBUG_LOCK_ALLOC` kernel configuration option. We will skip this now, because all debugging related stuff will be in the end of this part. So, if the `CONFIG_DEBUG_LOCK_ALLOC` kernel configuration option is disabled, the `spinlock_t` contains [union](https://en.wikipedia.org/wiki/Union_type#C.2FC.2B.2B) with one field which is - `raw_spinlock`:
+and located in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/blob/master/include/linux/spinlock_types.h) header file. We may see that its implementation depends on the state of the `CONFIG_DEBUG_LOCK_ALLOC` kernel configuration option. We will skip this now, because all debugging related stuff will be in the end of this part. So, if the `CONFIG_DEBUG_LOCK_ALLOC` kernel configuration option is disabled, the `spinlock_t` contains [union](https://en.wikipedia.org/wiki/Union_type#C.2FC.2B.2B) with one field which is - `raw_spinlock`:
 
 ```C
 typedef struct spinlock {
@@ -89,7 +89,7 @@ typedef struct spinlock {
 } spinlock_t;
 ```
 
-The `raw_spinlock` structure defined in the [same](https://github.com/torvalds/linux/master/include/linux/spinlock_types.h) header file represents the implementation of `normal` spinlock. Let's look how the `raw_spinlock` structure is defined:
+The `raw_spinlock` structure defined in the [same](https://github.com/torvalds/linux/blob/master/include/linux/spinlock_types.h) header file represents the implementation of `normal` spinlock. Let's look how the `raw_spinlock` structure is defined:
 
 ```C
 typedef struct raw_spinlock {
@@ -104,7 +104,7 @@ typedef struct raw_spinlock {
 } raw_spinlock_t;
 ```
 
-where the `arch_spinlock_t` represents architecture-specific `spinlock` implementation. As we mentioned above, we will skip debugging kernel configuration options. As we focus on [x86_64](https://en.wikipedia.org/wiki/X86-64) architecture in this book, the `arch_spinlock_t` that we will consider is defined in the [include/asm-generic/qspinlock_types.h](https://github.com/torvalds/linux/master/include/asm-generic/qspinlock_types.h) header file and looks:
+where the `arch_spinlock_t` represents architecture-specific `spinlock` implementation. As we mentioned above, we will skip debugging kernel configuration options. As we focus on [x86_64](https://en.wikipedia.org/wiki/X86-64) architecture in this book, the `arch_spinlock_t` that we will consider is defined in the [include/asm-generic/qspinlock_types.h](https://github.com/torvalds/linux/blob/master/include/asm-generic/qspinlock_types.h) header file and looks:
 
 ```C
 typedef struct qspinlock {
@@ -122,18 +122,18 @@ typedef struct qspinlock {
 } arch_spinlock_t;
 ```
 
-We will not stop on this structures for now. Let's look at the operations on a spinlock. The Linux kernel provides following main operations on a `spinlock`:
+We will not stop on this structures for now. Let's look at the operations on a `spinlock`. The Linux kernel provides following main operations on a `spinlock`:
 
 * `spin_lock_init` - produces initialization of the given `spinlock`;
 * `spin_lock` - acquires given `spinlock`;
-* `spin_lock_bh` - disables software [interrupts](https://en.wikipedia.org/wiki/Interrupt) and acquire given `spinlock`.
-* `spin_lock_irqsave` and `spin_lock_irq` - disable interrupts on local processor and preserve/not preserve previous interrupt state in the `flags`;
+* `spin_lock_bh` - disables software [interrupts](https://en.wikipedia.org/wiki/Interrupt) and acquire given `spinlock`;
+* `spin_lock_irqsave` and `spin_lock_irq` - disable interrupts on local processor, preserve/not preserve previous interrupt state in the `flags` and acquire given `spinlock`;
 * `spin_unlock` - releases given `spinlock`;
 * `spin_unlock_bh` - releases given `spinlock` and enables software interrupts;
 * `spin_is_locked` - returns the state of the given `spinlock`;
 * and etc.
 
-Let's look on the implementation of the `spin_lock_init` macro. As I already wrote, this and other macro are defined in the [include/linux/spinlock.h](https://github.com/torvalds/linux/master/include/linux/spinlock.h) header file and the `spin_lock_init` macro looks:
+Let's look on the implementation of the `spin_lock_init` macro. As I already wrote, this and other macro are defined in the [include/linux/spinlock.h](https://github.com/torvalds/linux/blob/master/include/linux/spinlock.h) header file and the `spin_lock_init` macro looks:
 
 ```C
 #define spin_lock_init(_lock)			\
@@ -161,7 +161,7 @@ do {						\
 } while (0)					\
 ```
 
-assigns the value of the `__RAW_SPIN_LOCK_UNLOCKED` with the given `spinlock` to the given `raw_spinlock_t`. As we may understand from the name of the `__RAW_SPIN_LOCK_UNLOCKED` macro, this macro does initialization of the given `spinlock` and set it to `released` state. This macro is defined in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/master/include/linux/spinlock_types.h) header file and expands to the following macros:
+assigns the value of the `__RAW_SPIN_LOCK_UNLOCKED` with the given `spinlock` to the given `raw_spinlock_t`. As we may understand from the name of the `__RAW_SPIN_LOCK_UNLOCKED` macro, this macro does initialization of the given `spinlock` and set it to `released` state. This macro is defined in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/blob/master/include/linux/spinlock_types.h) header file and expands to the following macros:
 
 ```C
 #define __RAW_SPIN_LOCK_UNLOCKED(lockname)      \
@@ -198,7 +198,7 @@ static __always_inline void spin_lock(spinlock_t *lock)
 }
 ```
 
-function which allows us to `acquire` a spinlock. The `raw_spin_lock` macro is defined in the same header file and expnads to the call of `_raw_spin_lock`:
+function which allows us to `acquire` a `spinlock`. The `raw_spin_lock` macro is defined in the same header file and expands to the call of `_raw_spin_lock`:
 
 ```C
 #define raw_spin_lock(lock)	_raw_spin_lock(lock)
@@ -236,7 +236,7 @@ static inline void __raw_spin_lock(raw_spinlock_t *lock)
 }
 ```
 
-As you may see, first of all we disable [preemption](https://en.wikipedia.org/wiki/Preemption_%28computing%29) by the call of the `preempt_disable` macro from the [include/linux/preempt.h](https://github.com/torvalds/linux/blob/master/include/linux/preempt.h) (more about this you may read in the ninth [part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-9.html) of the Linux kernel initialization process chapter). When we unlock the given `spinlock`, preemption will be enabled again:
+As you may see, first of all we disable [preemption](https://en.wikipedia.org/wiki/Preemption_%28computing%29) by the call of the `preempt_disable` macro from the [include/linux/preempt.h](https://github.com/torvalds/linux/blob/master/include/linux/preempt.h) (more about this you may read in the ninth [part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-9) of the Linux kernel initialization process chapter). When we unlock the given `spinlock`, preemption will be enabled again:
 
 ```C
 static inline void __raw_spin_unlock(raw_spinlock_t *lock)
@@ -317,7 +317,7 @@ Conclusion
 
 This concludes the first part covering synchronization primitives in the Linux kernel. In this part, we met first synchronization primitive `spinlock` provided by the Linux kernel. In the next part we will continue to dive into this interesting theme and will see other `synchronization` related stuff.
 
-If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
+If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](mailto:anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
 
 **Please note that English is not my first language and I am really sorry for any inconvenience. If you found any mistakes please send me PR to [linux-insides](https://github.com/0xAX/linux-insides).**
 
@@ -326,7 +326,7 @@ Links
 
 * [Concurrent computing](https://en.wikipedia.org/wiki/Concurrent_computing)
 * [Synchronization](https://en.wikipedia.org/wiki/Synchronization_%28computer_science%29)
-* [Clocksource framework](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-2.html)
+* [Clocksource framework](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-2)
 * [Mutex](https://en.wikipedia.org/wiki/Mutual_exclusion)
 * [Race condition](https://en.wikipedia.org/wiki/Race_condition)
 * [Atomic operations](https://en.wikipedia.org/wiki/Linearizability)
@@ -339,4 +339,4 @@ Links
 * [xadd instruction](http://x86.renejeschke.de/html/file_module_x86_id_327.html)
 * [NOP](https://en.wikipedia.org/wiki/NOP)
 * [Memory barriers](https://www.kernel.org/doc/Documentation/memory-barriers.txt)
-* [Previous chapter](https://0xax.gitbooks.io/linux-insides/content/Timers/index.html)
+* [Previous chapter](https://0xax.gitbook.io/linux-insides/summary/timers/)

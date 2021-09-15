@@ -38,9 +38,53 @@ On other languages
   * [Brazilian Portuguese](https://github.com/mauri870/linux-insides)
   * [Chinese](https://github.com/MintCN/linux-insides-zh)
   * [Japanese](https://github.com/tkmru/linux-insides-ja)
+  * [Korean](https://github.com/junsooo/linux-insides-ko)
   * [Russian](https://github.com/proninyaroslav/linux-insides-ru)
   * [Spanish](https://github.com/leolas95/linux-insides)
   * [Turkish](https://github.com/ayyucedemirbas/linux-insides_Turkish)
+
+Docker
+------
+
+In order to run your own copy of the book with gitbook within a local container:
+
+1. Enable Docker experimental features with vim or another text editor
+   ```bash
+    sudo vim /usr/lib/systemd/system/docker.service
+   ```
+
+   Then add --experimental=true to the end of the ExecStart=/usr/bin/dockerd -H fd:// line and save.
+
+   Eg: *ExecStart=/usr/bin/dockerd -H fd:// --experimental=true*
+
+   Then, you need to reload and restart the Docker daemon:
+   ```bash
+    systemctl daemon-reload
+    systemctl restart docker.service
+   ```
+
+2. Build container image
+   ```bash
+   docker image build \
+       --rm --squash \
+       --label linux-insides \
+       --tag linux-insides-book:latest \
+       -f Dockerfile .
+   ```
+
+3. Create and run book in local container
+   ```bash
+   docker run \
+       --detach \
+       --rm \
+       -p 4000:4000 \
+       --name linux-insides-book \
+       --hostname linux-insides-book \
+       linux-insides-book
+   ```
+
+4. Open your local copy of linux insides book under this url
+   http://localhost:4000
 
 Contributions 
 --------------
@@ -49,7 +93,7 @@ Feel free to create issues or pull-requests if you have any problems.
 
 **Please read [CONTRIBUTING.md](https://github.com/0xAX/linux-insides/blob/master/CONTRIBUTING.md) before pushing any changes.**
 
-![image](http://oi58.tinypic.com/23upobq.jpg)
+![linux-kernel](Assets/linux-kernel.png)
 
 Author
 ---------------

@@ -68,7 +68,7 @@ union thread_union {
 };
 ```
 
-Every process has its own stack and it is 16 kilobytes or 4 page frames. in `x86_64`. We can note that it is defined as array of `unsigned long`. The next field of the `thread_union` is - `thread_info` defined as:
+Every process has its own stack and it is 16 kilobytes or 4 page frames in `x86_64`. We can note that it is defined as array of `unsigned long`. The next field of the `thread_union` is - `thread_info` defined as:
 
 ```C
 struct thread_info {
@@ -86,7 +86,7 @@ struct thread_info {
 };
 ```
 
-and occupies 52 bytes. The `thread_info` structure contains architecture-specific information on the thread. We know that on `x86_64` the stack grows down and `thread_union.thread_info` is stored at the bottom of the stack in our case. So the process stack is 16 kilobytes and `thread_info` is at the bottom. The remaining thread_size will be `16 kilobytes - 62 bytes = 16332 bytes`. Note that `thread_union` represented as the [union](http://en.wikipedia.org/wiki/Union_type) and not structure, it means that `thread_info` and stack share the memory space.
+and occupies 52 bytes. The `thread_info` structure contains architecture-specific information on the thread. We know that on `x86_64` the stack grows down and `thread_union.thread_info` is stored at the bottom of the stack in our case. So the process stack is 16 kilobytes and `thread_info` is at the bottom. The remaining thread size will be `16 kilobytes - 62 bytes = 16332 bytes`. Note that `thread_union` represented as the [union](http://en.wikipedia.org/wiki/Union_type) and not structure, it means that `thread_info` and stack share the memory space.
 
 Schematically it can be represented as follows:
 
@@ -173,7 +173,7 @@ static inline unsigned long *end_of_stack(const struct task_struct *task)
 #endif
 ```
 
-As we got the end of the init process stack, we write `STACK_END_MAGIC` there. After `canary` is set, we can check it like this:
+As we got the end of the `init` process stack, we write `STACK_END_MAGIC` there. After `canary` is set, we can check it like this:
 
 ```C
 if (*end_of_stack(task) != STACK_END_MAGIC) {
@@ -195,7 +195,7 @@ as it not implemented for all architectures, but some such as [s390](http://en.w
 
 The next function in `start_kernel` is `debug_objects_early_init`. Implementation of this function is almost the same as `lockdep_init`, but fills hashes for object debugging. As I wrote above, we will not see the explanation of this and other functions which are for debugging purposes in this chapter.
 
-After the `debug_object_early_init` function we can see the call of the `boot_init_stack_canary` function which fills `task_struct->canary` with the canary value for the `-fstack-protector` gcc feature. This function depends on the `CONFIG_CC_STACKPROTECTOR` configuration option and if this option is disabled, `boot_init_stack_canary` does nothing, otherwise it generates random numbers based on random pool and the [TSC](http://en.wikipedia.org/wiki/Time_Stamp_Counter):
+After the `debug_object_early_init` function we can see the call of the `boot_init_stack_canary` function which fills `task_struct->canary` with the `canary` value for the `-fstack-protector` gcc feature. This function depends on the `CONFIG_CC_STACKPROTECTOR` configuration option and if this option is disabled, `boot_init_stack_canary` does nothing, otherwise it generates random numbers based on random pool and the [TSC](http://en.wikipedia.org/wiki/Time_Stamp_Counter):
 
 ```C
 get_random_bytes(&canary, sizeof(canary));
@@ -215,7 +215,7 @@ and write this value to the top of the IRQ stack with the:
 this_cpu_write(irq_stack_union.stack_canary, canary); // read below about this_cpu_write
 ```
 
-Again, we will not dive into details here, we will cover it in the part about [IRQs](http://en.wikipedia.org/wiki/Interrupt_request_%28PC_architecture%29). As canary is set, we disable local and early boot IRQs and register the bootstrap CPU in the CPU maps. We disable local IRQs (interrupts for current CPU) with the `local_irq_disable` macro which expands to the call of the `arch_local_irq_disable` function from [include/linux/percpu-defs.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/percpu-defs.h):
+Again, we will not dive into details here, we will cover it in the part about [IRQs](http://en.wikipedia.org/wiki/Interrupt_request_%28PC_architecture%29). As `canary` is set, we disable local and early boot IRQs and register the bootstrap CPU in the CPU maps. We disable local IRQs (interrupts for current CPU) with the `local_irq_disable` macro which expands to the call of the `arch_local_irq_disable` function from [include/linux/percpu-defs.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/percpu-defs.h):
 
 ```C
 static inline notrace void arch_local_irq_disable(void)
@@ -241,7 +241,7 @@ For now it is just zero. If the `CONFIG_DEBUG_PREEMPT` configuration option is d
 #define raw_smp_processor_id() (this_cpu_read(cpu_number))
 ```
 
-`this_cpu_read` as many other function like this (`this_cpu_write`, `this_cpu_add` and etc...) defined in the [include/linux/percpu-defs.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/percpu-defs.h) and presents `this_cpu` operation. These operations provide a way of optimizing access to the [per-cpu](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-1.html) variables which are associated with the current processor. In our case it is `this_cpu_read`:
+`this_cpu_read` as many other function like this (`this_cpu_write`, `this_cpu_add` and etc...) defined in the [include/linux/percpu-defs.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/percpu-defs.h) and presents `this_cpu` operation. These operations provide a way of optimizing access to the [per-cpu](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-1) variables which are associated with the current processor. In our case it is `this_cpu_read`:
 
 ```
 __pcpu_size_call_return(this_cpu_read_, pcp)
@@ -315,7 +315,7 @@ For example let's look at `set_cpu_possible`. As we passed `true` as the second 
 cpumask_set_cpu(cpu, to_cpumask(cpu_possible_bits));
 ```
 
-will be called. First of all let's try to understand the `to_cpumask` macro. This macro casts a bitmap to a `struct cpumask *`. CPU masks provide a bitmap suitable for representing the set of CPU's in a system, one bit position per CPU number. CPU mask presented by the `cpu_mask` structure:
+will be called. First of all let's try to understand the `to_cpumask` macro. This macro casts a bitmap to a `struct cpumask *`. CPU masks provide a bitmap suitable for representing the set of CPU's in a system, one bit position per CPU number. CPU mask presented by the `cpumask` structure:
 
 ```C
 typedef struct cpumask { DECLARE_BITMAP(bits, NR_CPUS); } cpumask_t;
@@ -346,7 +346,7 @@ static inline int __check_is_bitmap(const unsigned long *bitmap)
 
 Yeah, it just returns `1` every time. Actually we need in it here only for one purpose: at compile time it checks that the given `bitmap` is a bitmap, or in other words it checks that the given `bitmap` has a type of `unsigned long *`. So we just pass `cpu_possible_bits` to the `to_cpumask` macro for converting the array of `unsigned long` to the `struct cpumask *`. Now we can call `cpumask_set_cpu` function with the `cpu` - 0 and `struct cpumask *cpu_possible_bits`. This function makes only one call of the `set_bit` function which sets the given `cpu` in the cpumask. All of these `set_cpu_*` functions work on the same principle.
 
-If you're not sure that this `set_cpu_*` operations and `cpumask` are not clear for you, don't worry about it. You can get more info by reading the special part about it - [cpumask](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-2.html) or [documentation](https://www.kernel.org/doc/Documentation/cpu-hotplug.txt).
+If you're not sure that this `set_cpu_*` operations and `cpumask` are not clear for you, don't worry about it. You can get more info by reading the special part about it - [cpumask](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-2) or [documentation](https://www.kernel.org/doc/Documentation/cpu-hotplug.txt).
 
 As we activated the bootstrap processor, it's time to go to the next function in the `start_kernel.` Now it is `page_address_init`, but this function does nothing in our case, because it executes only when all `RAM` can't be mapped directly.
 
@@ -375,7 +375,7 @@ Linux version 4.0.0-rc6+ (alex@localhost) (gcc version 4.9.1 (Ubuntu 4.9.1-16ubu
 Architecture-dependent parts of initialization
 ---------------------------------------------------------------------------------
 
-The next step is architecture-specific initialization. The Linux kernel does it with the call of the `setup_arch` function. This is a very big function like `start_kernel` and we do not have time to consider all of its implementation in this part. Here we'll only start to do it and continue in the next part. As it is `architecture-specific`, we need to go again to the `arch/` directory. The `setup_arch` function defined in the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/setup.c) source code file and takes only one argument - address of the kernel command line.
+The next step is architecture-specific initialization. The Linux kernel does it with the call of the `setup_arch` function. This is a very big function like `start_kernel` and we do not have time to consider all of its implementation in this part. Here we'll only start to do it and continue in the next part. As it is `architecture-specific`, we need to go again to the `arch/` directory. The `setup_arch` function defined in the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/master/arch/x86/kernel/setup.c) source code file and takes only one argument - address of the kernel command line.
 
 This function starts from the reserving memory block for the kernel `_text` and `_data` which starts from the `_text` symbol (you can remember it from the [arch/x86/kernel/head_64.S](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/head_64.S#L46)) and ends before `__bss_stop`. We are using `memblock` for the reserving of memory block:
 
@@ -383,7 +383,7 @@ This function starts from the reserving memory block for the kernel `_text` and 
 memblock_reserve(__pa_symbol(_text), (unsigned long)__bss_stop - (unsigned long)_text);
 ```
 
-You can read about `memblock` in the [Linux kernel memory management Part 1.](https://0xax.gitbooks.io/linux-insides/content/MM/linux-mm-1.html). As you can remember `memblock_reserve` function takes two parameters:
+You can read about `memblock` in the [Linux kernel memory management Part 1.](https://0xax.gitbook.io/linux-insides/summary/mm/linux-mm-1). As you can remember `memblock_reserve` function takes two parameters:
 
 * base physical address of a memory block;
 * size of a memory block.
@@ -415,7 +415,7 @@ u64 ramdisk_size  = get_ramdisk_size();
 u64 ramdisk_end   = PAGE_ALIGN(ramdisk_image + ramdisk_size);
 ```
 
-All of these parameters are taken from `boot_params`. If you have read the chapter about [Linux Kernel Booting Process](https://0xax.gitbooks.io/linux-insides/content/Booting/index.html), you must remember that we filled the `boot_params` structure during boot time. The kernel setup header contains a couple of fields which describes ramdisk, for example:
+All of these parameters are taken from `boot_params`. If you have read the chapter about [Linux Kernel Booting Process](https://0xax.gitbook.io/linux-insides/summary/booting), you must remember that we filled the `boot_params` structure during boot time. The kernel setup header contains a couple of fields which describes ramdisk, for example:
 
 ```
 Field name:	ramdisk_image

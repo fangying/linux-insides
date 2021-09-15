@@ -4,7 +4,7 @@ Synchronization primitives in the Linux kernel. Part 3.
 Semaphores
 --------------------------------------------------------------------------------
 
-This is the third part of the [chapter](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/index.html) which describes synchronization primitives in the Linux kernel and in the previous part we saw special type of [spinlocks](https://en.wikipedia.org/wiki/Spinlock) - `queued spinlocks`. The previous [part](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/linux-sync-2.html) was the last part which describes `spinlocks` related stuff. So we need to go ahead.
+This is the third part of the [chapter](https://0xax.gitbook.io/linux-insides/summary/syncprim) which describes synchronization primitives in the Linux kernel and in the previous part we saw special type of [spinlocks](https://en.wikipedia.org/wiki/Spinlock) - `queued spinlocks`. The previous [part](https://0xax.gitbook.io/linux-insides/summary/syncprim/linux-sync-2) was the last part which describes `spinlocks` related stuff. So we need to go ahead.
 
 The next [synchronization primitive](https://en.wikipedia.org/wiki/Synchronization_%28computer_science%29) after `spinlock` which we will see in this part is [semaphore](https://en.wikipedia.org/wiki/Semaphore_%28programming%29). We will start from theoretical side and will learn what is it `semaphore` and only after this, we will see how it is implemented in the Linux kernel as we did in the previous part.
 
@@ -15,9 +15,9 @@ Introduction to the semaphores in the Linux kernel
 
 So, what is it `semaphore`? As you may guess - `semaphore` is yet another mechanism for support of thread or process synchronization. The Linux kernel already provides implementation of one synchronization mechanism - `spinlocks`, why do we need in yet another one? To answer on this question we need to know details of both of these mechanisms. We already familiar with the `spinlocks`, so let's start from this mechanism.
 
-The main idea behind `spinlock` concept is a lock which will be acquired for a very short time. We can't sleep when a lock acquired by a process or thread, because other processes wait us. [Context switch](https://en.wikipedia.org/wiki/Context_switch) is not not allowed because [preemption](https://en.wikipedia.org/wiki/Preemption_%28computing%29) is disabled to avoid [deadlocks](https://en.wikipedia.org/wiki/Deadlock).
+`spinlock` creates a lock which will be acquired to protect a shared resource from being modified by more than one process. As a result, other processes that try to acquire the current lock get stopped (aka "spin-in-place" or busy waiting). [Context switch](https://en.wikipedia.org/wiki/Context_switch) is not allowed because [preemption](https://en.wikipedia.org/wiki/Preemption_%28computing%29) is disabled to avoid [deadlocks](https://en.wikipedia.org/wiki/Deadlock). As a result, `spinlock` should only be used if the lock will only be acquired for a very short period of time, otherwise amount of busy waiting accumulated by other processes results in extremely inefficient operation. For locks that need to be acquired for a relatively long period of time, we turn to `semaphore`.
 
-In this way, [semaphores](https://en.wikipedia.org/wiki/Semaphore_%28programming%29) is a good solution for locks which may be acquired for a long time. In other way this mechanism is not optimal for locks that acquired for a short time. To understand this, we need to know what is `semaphore`.
+[semaphores](https://en.wikipedia.org/wiki/Semaphore_%28programming%29) is a good solution for locks which may be acquired for a long time. In other way this mechanism is not optimal for locks that acquired for a short time. To understand this, we need to know what is `semaphore`.
 
 As usual synchronization primitive, a `semaphore` is based on a variable. This variable may be incremented or decremented and it's state will represent ability to acquire lock. Notice that value of the variable is not limited to `0` and `1`. There are two types of `semaphores`:
 
@@ -70,13 +70,13 @@ as we may see, the `DEFINE_SEMAPHORE` macro provides ability to initialize only 
 }
 ```
 
-The `__SEMAPHORE_INITIALIZER` macro takes the name of the future `semaphore` structure and does initialization of the fields of this structure. First of all we initialize a `spinlock` of the given `semaphore` with the `__RAW_SPIN_LOCK_UNLOCKED` macro. As you may remember from the [previous](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/linux-sync-1.html) parts, the `__RAW_SPIN_LOCK_UNLOCKED` is defined in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/spinlock_types.h) header file and expands to the `__ARCH_SPIN_LOCK_UNLOCKED` macro which just expands to zero or unlocked state:
+The `__SEMAPHORE_INITIALIZER` macro takes the name of the future `semaphore` structure and does initialization of the fields of this structure. First of all we initialize a `spinlock` of the given `semaphore` with the `__RAW_SPIN_LOCK_UNLOCKED` macro. As you may remember from the [previous](https://0xax.gitbook.io/linux-insides/summary/syncprim/linux-sync-1) parts, the `__RAW_SPIN_LOCK_UNLOCKED` is defined in the [include/linux/spinlock_types.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/spinlock_types.h) header file and expands to the `__ARCH_SPIN_LOCK_UNLOCKED` macro which just expands to zero or unlocked state:
 
 ```C
 #define __ARCH_SPIN_LOCK_UNLOCKED       { { 0 } }
 ```
 
-The last two fields of the `semaphore` structure `count` and `wait_list` are initialized with the given value which represents count of available resources and empty [list](https://0xax.gitbooks.io/linux-insides/content/DataStructures/linux-datastructures-1.html).
+The last two fields of the `semaphore` structure `count` and `wait_list` are initialized with the given value which represents count of available resources and empty [list](https://0xax.gitbook.io/linux-insides/summary/datastructures/linux-datastructures-1).
 
 The second way to initialize a `semaphore` structure is to pass the `semaphore` and number of available resources to the `sema_init` function which is defined in the [include/linux/semaphore.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/semaphore.h) header file:
 
@@ -89,7 +89,7 @@ static inline void sema_init(struct semaphore *sem, int val)
 }
 ```
 
-Let's consider implementation of this function. It looks pretty easy and actually it does almost the same. Thus function executes initialization of the given `semaphore` with the `__SEMAPHORE_INITIALIZER` macro which we just saw. As I already wrote in the previous parts of this [chapter](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/index.html), we will skip the stuff which is related to the [lock validator](https://www.kernel.org/doc/Documentation/locking/lockdep-design.txt) of the Linux kernel.
+Let's consider implementation of this function. It looks pretty easy and actually it does almost the same. Thus function executes initialization of the given `semaphore` with the `__SEMAPHORE_INITIALIZER` macro which we just saw. As I already wrote in the previous parts of this [chapter](https://0xax.gitbook.io/linux-insides/summary/syncprim), we will skip the stuff which is related to the [lock validator](https://www.kernel.org/doc/Documentation/locking/lockdep-design.txt) of the Linux kernel.
 
 So, from now we are able to initialize a `semaphore` let's look at how to lock and unlock. The Linux kernel provides following [API](https://en.wikipedia.org/wiki/Application_programming_interface) to manipulate `semaphores`:
 
@@ -106,7 +106,7 @@ The first two functions: `down` and `up` are for acquiring and releasing of the 
 
 The `down_killable` function does the same as the `down_interruptible` function, but set the `TASK_KILLABLE` flag for the current process. This means that the waiting process may be interrupted by the kill signal.
 
-The `down_trylock` function is similar on the `spin_trylock` function. This function tries to acquire a lock and exit if this operation was unsuccessful. In this case the process which wants to acquire a lock, will not wait. The last `down_timeout` function tries to acquire a lock. It will be interrupted in a waiting state when the given timeout will be expired. Additionally, you may notice that the timeout is in [jiffies](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html)
+The `down_trylock` function is similar on the `spin_trylock` function. This function tries to acquire a lock and exit if this operation was unsuccessful. In this case the process which wants to acquire a lock, will not wait. The last `down_timeout` function tries to acquire a lock. It will be interrupted in a waiting state when the given timeout will be expired. Additionally, you may notice that the timeout is in [jiffies](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1)
 
 We just saw definitions of the `semaphore` [API](https://en.wikipedia.org/wiki/Application_programming_interface). We will start from the `down` function. This function is defined in the [kernel/locking/semaphore.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/locking/semaphore.c) source code file. Let's look on the implementation function:
 
@@ -184,7 +184,7 @@ The first represents current task for the local processor which wants to acquire
 #define current get_current()
 ```
 
-Where the `get_current` function returns value of the `current_task` [per-cpu](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-1.html) variable:
+Where the `get_current` function returns value of the `current_task` [per-cpu](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-1) variable:
 
 ```C
 DECLARE_PER_CPU(struct task_struct *, current_task);
@@ -328,7 +328,7 @@ Conclusion
 
 This is the end of the third part of the [synchronization primitives](https://en.wikipedia.org/wiki/Synchronization_%28computer_science%29) chapter in the Linux kernel. In the two previous parts we already met the first synchronization primitive `spinlock` provided by the Linux kernel which is implemented as `ticket spinlock` and used for a very short time locks. In this part we saw yet another synchronization primitive - [semaphore](https://en.wikipedia.org/wiki/Semaphore_%28programming%29) which is used for long time locks as it leads to [context switch](https://en.wikipedia.org/wiki/Context_switch). In the next part we will continue to dive into synchronization primitives in the Linux kernel and will see next synchronization primitive - [mutex](https://en.wikipedia.org/wiki/Mutual_exclusion). 
 
-If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
+If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](mailto:anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
 
 **Please note that English is not my first language and I am really sorry for any inconvenience. If you found any mistakes please send me PR to [linux-insides](https://github.com/0xAX/linux-insides).**
 
@@ -342,13 +342,13 @@ Links
 * [preemption](https://en.wikipedia.org/wiki/Preemption_%28computing%29)
 * [deadlocks](https://en.wikipedia.org/wiki/Deadlock)
 * [scheduler](https://en.wikipedia.org/wiki/Scheduling_%28computing%29)
-* [Doubly linked list in the Linux kernel](https://0xax.gitbooks.io/linux-insides/content/DataStructures/linux-datastructures-1.html)
-* [jiffies](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html)
+* [Doubly linked list in the Linux kernel](https://0xax.gitbook.io/linux-insides/summary/datastructures/linux-datastructures-1)
+* [jiffies](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1)
 * [interrupts](https://en.wikipedia.org/wiki/Interrupt)
-* [per-cpu](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-1.html)
+* [per-cpu](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-1)
 * [bitmask](https://en.wikipedia.org/wiki/Mask_%28computing%29)
 * [SIGKILL](https://en.wikipedia.org/wiki/Unix_signal#SIGKILL)
 * [errno](https://en.wikipedia.org/wiki/Errno.h)
 * [API](https://en.wikipedia.org/wiki/Application_programming_interface)
 * [mutex](https://en.wikipedia.org/wiki/Mutual_exclusion)
-* [Previous part](https://0xax.gitbooks.io/linux-insides/content/SyncPrim/linux-sync-2.html)
+* [Previous part](https://0xax.gitbook.io/linux-insides/summary/syncprim/linux-sync-2)

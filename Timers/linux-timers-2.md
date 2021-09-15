@@ -4,7 +4,7 @@ Timers and time management in the Linux kernel. Part 2.
 Introduction to the `clocksource` framework
 --------------------------------------------------------------------------------
 
-The previous [part](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html) was the first part in the current [chapter](https://0xax.gitbooks.io/linux-insides/content/Timers/index.html) that describes timers and time management related stuff in the Linux kernel. We got acquainted with two concepts in the previous part:
+The previous [part](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1) was the first part in the current [chapter](https://0xax.gitbook.io/linux-insides/summary/timers/) that describes timers and time management related stuff in the Linux kernel. We got acquainted with two concepts in the previous part:
 
   * `jiffies`
   * `clocksource`
@@ -50,7 +50,7 @@ if (!boot_error) {
 
 We assign `jiffies + 10*HZ` value to the `timeout` variable here. As I think you already understood, this means a ten seconds timeout. After this we are entering a loop where we use the `time_before` macro to compare the current `jiffies` value and our timeout.
 
-Or for example if we look into the [sound/isa/sscape.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/sound/isa/sscape) source code file which represents the driver for the [Ensoniq Soundscape Elite](https://en.wikipedia.org/wiki/Ensoniq_Soundscape_Elite) sound card, we will see the `obp_startup_ack` function that waits upto a given timeout for the On-Board Processor to return its start-up acknowledgement sequence:
+Or for example if we look into the [sound/isa/sscape.c](https://github.com/torvalds/linux/blob/master/sound/isa/sscape.c) source code file which represents the driver for the [Ensoniq Soundscape Elite](https://en.wikipedia.org/wiki/Ensoniq_Soundscape_Elite) sound card, we will see the `obp_startup_ack` function that waits upto a given timeout for the On-Board Processor to return its start-up acknowledgement sequence:
 
 ```C
 static int obp_startup_ack(struct soundscape *s, unsigned timeout)
@@ -74,25 +74,25 @@ static int obp_startup_ack(struct soundscape *s, unsigned timeout)
 }
 ```
 
-As you can see, the `jiffies` variable is very widely used in the Linux kernel [code](http://lxr.free-electrons.com/ident?i=jiffies). As I already wrote, we met yet another new time management related concept in the previous part - `clocksource`. We have only seen a short description of this concept and the API for a clock source registration. Let's take a closer look in this part.
+As you can see, the `jiffies` variable is very widely used in the Linux kernel [code](http://lxr.free-electrons.com/ident?i=jiffies). As I already wrote, we met yet another new time management related concept in the previous part - `clocksource`. We have only seen a short description of this concept and the API for a `clocksource` registration. Let's take a closer look in this part.
 
 Introduction to `clocksource`
 --------------------------------------------------------------------------------
 
 The `clocksource` concept represents the generic API for clock sources management in the Linux kernel. Why do we need a separate framework for this? Let's go back to the beginning. The `time` concept is the fundamental concept in the Linux kernel and other operating system kernels. And the timekeeping is one of the necessities to use this concept. For example Linux kernel must know and update the time elapsed since system startup, it must determine how long the current process has been running for every processor and many many more. Where the Linux kernel can get information about time? First of all it is Real Time Clock or [RTC](https://en.wikipedia.org/wiki/Real-time_clock) that represents by the a nonvolatile device. You can find a set of architecture-independent real time clock drivers in the Linux kernel in the [drivers/rtc](https://github.com/torvalds/linux/tree/master/drivers/rtc) directory. Besides this, each architecture can provide a driver for the architecture-dependent real time clock, for example - `CMOS/RTC` - [arch/x86/kernel/rtc.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/rtc.c) for the [x86](https://en.wikipedia.org/wiki/X86) architecture. The second is system timer - timer that excites [interrupts](https://en.wikipedia.org/wiki/Interrupt) with a periodic rate. For example, for [IBM PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer) compatibles it was - [programmable interval timer](https://en.wikipedia.org/wiki/Programmable_interval_timer).
 
-We already know that for timekeeping purposes we can use `jiffies` in the Linux kernel. The `jiffies` can be considered as read only global variable which is updated with `HZ` frequency. We know that the `HZ` is a compile-time kernel parameter whose reasonable range is from `100` to `1000` [Hz](https://en.wikipedia.org/wiki/Hertz). So, it is guaranteed to have an interface for time measurement  with `1` - `10` milliseconds resolution. Besides standard `jiffies`, we saw the `refined_jiffies` clock source in the previous part that is based on the `i8253/i8254` [programmable interval timer](https://en.wikipedia.org/wiki/Programmable_interval_timer) tick rate which is almost `1193182` hertz. So we can get something about `1` microsecond resolution with the `refined_jiffies`. In this time, [nanoseconds](https://en.wikipedia.org/wiki/Nanosecond) are the favorite choice for the time value units of the given clock source.
+We already know that for timekeeping purposes we can use `jiffies` in the Linux kernel. The `jiffies` can be considered as read only global variable which is updated with `HZ` frequency. We know that the `HZ` is a compile-time kernel parameter whose reasonable range is from `100` to `1000` [Hz](https://en.wikipedia.org/wiki/Hertz). So, it is guaranteed to have an interface for time measurement  with `1` - `10` milliseconds resolution. Besides standard `jiffies`, we saw the `refined_jiffies` clock source in the previous part that is based on the `i8253/i8254` [programmable interval timer](https://en.wikipedia.org/wiki/Programmable_interval_timer) tick rate which is almost `1193182` hertz. So we can get something about `1` microsecond resolution with the `refined_jiffies`. In this time, [nanoseconds](https://en.wikipedia.org/wiki/Nanosecond) are the favorite choice for the time value units of the given `clocksource`.
 
 The availability of more precise techniques for time intervals measurement is hardware-dependent. We just knew a little about `x86` dependent timers hardware. But each architecture provides own timers hardware. Earlier each architecture had own implementation for this purpose. Solution of this problem is an abstraction layer and associated API in a common code framework for managing various clock sources and independent of the timer interrupt. This common code framework became - `clocksource` framework.
 
-Generic timeofday and clock source management framework moved a lot of timekeeping code into the architecture independent portion of the code, with the architecture-dependent portion reduced to defining and managing low-level hardware pieces of clocksources. It takes a large amount of funds to measure the time interval on different architectures with different hardware, and it is very complex. Implementation of the each clock related service is strongly associated with an individual hardware device and as you can understand, it results in similar implementations for different architectures.
+Generic timeofday and `clocksource` management framework moved a lot of timekeeping code into the architecture independent portion of the code, with the architecture-dependent portion reduced to defining and managing low-level hardware pieces of clocksources. It takes a large amount of funds to measure the time interval on different architectures with different hardware, and it is very complex. Implementation of the each clock related service is strongly associated with an individual hardware device and as you can understand, it results in similar implementations for different architectures.
 
 Within this framework, each clock source is required to maintain a representation of time as a monotonically increasing value. As we can see in the Linux kernel code, nanoseconds are the favorite choice for the time value units of a clock source in this time. One of the main point of the clock source framework is to allow a user to select clock source among a range of available hardware devices supporting clock functions when configuring the system and selecting, accessing and scaling different clock sources.
 
-The clocksource structure
+The `clocksource` structure
 --------------------------------------------------------------------------------
 
-The fundamental of the `clocksource` framework is the `clocksource` structure that defined in the [include/linux/clocksource.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/clocksource.h) header file. We already saw some fields that are provided by the `clocksource` structure in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html). Let's look on the full definition of this structure and try to describe all of its fields:
+The fundamental of the `clocksource` framework is the `clocksource` structure that defined in the [include/linux/clocksource.h](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/include/linux/clocksource.h) header file. We already saw some fields that are provided by the `clocksource` structure in the previous [part](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1). Let's look on the full definition of this structure and try to describe all of its fields:
 
 ```C
 struct clocksource {
@@ -194,10 +194,10 @@ The last three fields are `wd_list`, `cs_last` and the `wd_last` depends on the 
 
 That's all. From this moment we know all fields of the `clocksource` structure. This knowledge will help us to learn insides of the `clocksource` framework.
 
-New clock source registration
+New `clocksource` registration
 --------------------------------------------------------------------------------
 
-We saw only one function from the `clocksource` framework in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html). This function was - `__clocksource_register`. This function defined in the [include/linux/clocksource.h](https://github.com/torvalds/linux/tree/master/include/linux/clocksource.h) header file and as we can understand from the function's name, main point of this function is to register new clocksource. If we will look on the implementation of the `__clocksource_register` function, we will see that it just makes call of the `__clocksource_register_scale` function and returns its result:
+We saw only one function from the `clocksource` framework in the previous [part](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1). This function was - `__clocksource_register`. This function defined in the [include/linux/clocksource.h](https://github.com/torvalds/linux/tree/master/include/linux/clocksource.h) header file and as we can understand from the function's name, main point of this function is to register new clocksource. If we will look on the implementation of the `__clocksource_register` function, we will see that it just makes call of the `__clocksource_register_scale` function and returns its result:
 
 ```C
 static inline int __clocksource_register(struct clocksource *cs)
@@ -241,7 +241,7 @@ int __clocksource_register_scale(struct clocksource *cs, u32 scale, u32 freq)
 }
 ```
 
-First of all we can see that the `__clocksource_register_scale` function starts from the call of the `__clocksource_update_freq_scale` function that defined in the same source code file and updates given clock source with the new frequency. Let's look on the implementation of this function. In the first step we need to check given frequency and if it was not passed as `zero`, we need to calculate `mult` and `shift` parameters for the given clock source. Why do we need to check value of the `frequency`? Actually it can be zero. if you attentively looked on the implementation of the `__clocksource_register` function, you may have noticed that we passed `frequency` as `0`. We will do it only for some clock sources that have self defined `mult` and `shift` parameters. Look in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html) and you will see that we saw calculation of the `mult` and `shift` for `jiffies`. The `__clocksource_update_freq_scale` function will do it for us for other clock sources.
+First of all we can see that the `__clocksource_register_scale` function starts from the call of the `__clocksource_update_freq_scale` function that defined in the same source code file and updates given clock source with the new frequency. Let's look on the implementation of this function. In the first step we need to check given frequency and if it was not passed as `zero`, we need to calculate `mult` and `shift` parameters for the given clock source. Why do we need to check value of the `frequency`? Actually it can be zero. if you attentively looked on the implementation of the `__clocksource_register` function, you may have noticed that we passed `frequency` as `0`. We will do it only for some clock sources that have self defined `mult` and `shift` parameters. Look in the previous [part](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1) and you will see that we saw calculation of the `mult` and `shift` for `jiffies`. The `__clocksource_update_freq_scale` function will do it for us for other clock sources.
 
 So in the start of the `__clocksource_update_freq_scale` function we check the value of the `frequency` parameter and if is not zero we need to calculate `mult` and `shift` for the given clock source. Let's look on the `mult` and `shift` calculation:
 
@@ -269,7 +269,7 @@ void __clocksource_update_freq_scale(struct clocksource *cs, u32 scale, u32 freq
 }
 ```
 
-Here we can see calculation of the maximum number of seconds which we can run before a clock source counter will overflow. First of all we fill the `sec` variable with the value of a clock source mask. Remember that a clock source's mask represents maximum amount of bits that are valid for the given clock source. After this, we can see two division operations. At first we divide our `sec` variable on a clock source frequency and then on scale factor. The `freq` parameter shows us how many timer interrupts will be occurred in one second. So, we divide `mask` value that represents maximum number of a counter (for example `jiffy`) on the frequency of a timer and will get the maximum number of seconds for the certain clock source. The second division operation will give us maximum number of seconds for the certain clock source depends on its scale factor which can be `1` hertz or `1` kilohertz (10^3 Hz).
+Here we can see calculation of the maximum number of seconds which we can run before a `clocksource` counter will overflow. First of all we fill the `sec` variable with the value of a clock source mask. Remember that a clock source's mask represents maximum amount of bits that are valid for the given clock source. After this, we can see two division operations. At first we divide our `sec` variable on a `clocksource` frequency and then on scale factor. The `freq` parameter shows us how many timer interrupts will be occurred in one second. So, we divide `mask` value that represents maximum number of a counter (for example `jiffy`) on the frequency of a timer and will get the maximum number of seconds for the certain `clocksource`. The second division operation will give us maximum number of seconds for the certain `clocksource`depends on its scale factor which can be `1` hertz or `1` kilohertz (10^3 Hz).
 
 After we have got maximum number of seconds, we check this value and set it to `1` or `600` depends on the result at the next step. These values is maximum sleeping time for a clocksource in seconds. In the next step we can see call of the `clocks_calc_mult_shift`. Main point of this function is calculation of the `mult` and `shift` values for a given clock source. In the end of the `__clocksource_update_freq_scale` function we check that just calculated `mult` value of a given clock source will not cause overflow after adjustment, update the `max_idle_ns` and `max_cycles` values of a given clock source with the maximum nanoseconds that can be converted to a clock source counter and print result to the kernel buffer:
 
@@ -304,14 +304,20 @@ Note that before the first will be called, we lock the `clocksource_mutex` [mute
 The first `clocksource_enqueue` function and other two defined in the same source code [file](https://github.com/torvalds/linux/tree/master/kernel/time/clocksource.c). We go through all already registered `clocksources` or in other words we go through all elements of the `clocksource_list` and tries to find best place for a given `clocksource`:
 
 ```C
+/*
+ * Enqueue the clocksource sorted by rating
+ */
 static void clocksource_enqueue(struct clocksource *cs)
 {
 	struct list_head *entry = &clocksource_list;
 	struct clocksource *tmp;
 
-	list_for_each_entry(tmp, &clocksource_list, list)
-		if (tmp->rating >= cs->rating)
-			entry = &tmp->list;
+	list_for_each_entry(tmp, &clocksource_list, list) {
+		/* Keep track of the place, where to insert */
+		if (tmp->rating < cs->rating)
+			break;
+		entry = &tmp->list;
+	}
 	list_add(&cs->list, entry);
 }
 ```
@@ -423,7 +429,7 @@ Conclusion
 
 This is the end of the second part of the chapter that describes timers and timer management related stuff in the Linux kernel. In the previous part got acquainted with the following two concepts: `jiffies` and `clocksource`. In this part we saw some examples of the `jiffies` usage and knew more details about the `clocksource` concept.
 
-If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
+If you have questions or suggestions, feel free to ping me in twitter [0xAX](https://twitter.com/0xAX), drop me [email](mailto:anotherworldofworld@gmail.com) or just create [issue](https://github.com/0xAX/linux-insides/issues/new).
 
 **Please note that English is not my first language and I am really sorry for any inconvenience. If you found any mistakes please send me PR to [linux-insides](https://github.com/0xAX/linux-insides).**
 
@@ -448,4 +454,4 @@ Links
 * [clock rate](https://en.wikipedia.org/wiki/Clock_rate)
 * [mutex](https://en.wikipedia.org/wiki/Mutual_exclusion)
 * [sysfs](https://en.wikipedia.org/wiki/Sysfs)
-* [previous part](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-1.html)
+* [previous part](https://0xax.gitbook.io/linux-insides/summary/timers/linux-timers-1)

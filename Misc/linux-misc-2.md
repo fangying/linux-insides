@@ -27,7 +27,7 @@ VERSION = 4
 PATCHLEVEL = 2
 SUBLEVEL = 0
 EXTRAVERSION = -rc3
-NAME = Hurr durr I'ma sheep
+NAME = Hurr durr I'm a sheep
 ```
 
 These variables determine the current version of Linux kernel and are used in different places, for example in the forming of the `KERNELVERSION` variable in the same `Makefile`:
@@ -666,3 +666,4 @@ Links
 * [Documentation](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/Documentation/kbuild/makefiles.txt)
 * [System.map](https://en.wikipedia.org/wiki/System.map)
 * [Relocation](https://en.wikipedia.org/wiki/Relocation_%28computing%29)
+* [The Linux Kernel](https://www.kernel.org/doc/html/latest/driver-api/device_link.html)

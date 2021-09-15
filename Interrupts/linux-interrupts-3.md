@@ -4,7 +4,7 @@ Interrupts and Interrupt Handling. Part 3.
 Exception Handling
 --------------------------------------------------------------------------------
 
-This is the third part of the [chapter](https://0xax.gitbooks.io/linux-insides/content/Interrupts/index.html) about an interrupts and an exceptions handling in the Linux kernel and in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Interrupts/index.html) we stopped at the `setup_arch` function from the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blame/master/arch/x86/kernel/setup.c) source code file.
+This is the third part of the [chapter](https://0xax.gitbook.io/linux-insides/summary/interrupts) about an interrupts and an exceptions handling in the Linux kernel and in the previous [part](https://0xax.gitbook.io/linux-insides/summary/interrupts) we stopped at the `setup_arch` function from the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blame/master/arch/x86/kernel/setup.c) source code file.
 
 We already know that this function executes initialization of architecture-specific stuff. In our case the `setup_arch` function does [x86_64](https://en.wikipedia.org/wiki/X86-64) architecture related initializations. The `setup_arch` is big function, and in the previous part we stopped on the setting of the two exceptions handlers for the two following exceptions:
 
@@ -140,7 +140,7 @@ idtentry int3 do_int3 has_error_code=0 paranoid=1 shift_ist=DEBUG_STACK
 
 Each exception handler may be consists from two parts. The first part is generic part and it is the same for all exception handlers. An exception handler should to save  [general purpose registers](https://en.wikipedia.org/wiki/Processor_register) on the stack, switch to kernel stack if an exception came from userspace and transfer control to the second part of an exception handler. The second part of an exception handler does certain work depends on certain exception. For example page fault exception handler should find virtual page for given address, invalid opcode exception handler should send `SIGILL` [signal](https://en.wikipedia.org/wiki/Unix_signal) and etc.
 
-As we just saw, an exception handler starts from definition of the `idtentry` macro from the [arch/x86/kernel/entry_64.S](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/entry_64.S) assembly source code file, so let's look at implementation of this macro. As we may see, the `idtentry` macro takes five arguments:
+As we just saw, an exception handler starts from definition of the `idtentry` macro from the [arch/x86/entry/entry_64.S](https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S) assembly source code file, so let's look at implementation of this macro. As we may see, the `idtentry` macro takes five arguments:
 
 * `sym` - defines global symbol with the `.globl name` which will be an an entry of exception handler;
 * `do_sym` - symbol name which represents a secondary entry of an exception handler;
@@ -283,7 +283,7 @@ After we allocated space for general purpose registers, we do some checks to und
 
 Let's consider all of these there cases in course.
 
-An exception occured in userspace
+An exception occurred in userspace
 --------------------------------------------------------------------------------
 
 In the first let's consider a case when an exception has `paranoid=1` like our `debug` and `int3` exceptions. In this case we check selector from `CS` segment register and jump at `1f` label if we came from userspace or the `paranoid_entry` will be called in other way.
@@ -477,7 +477,7 @@ In the end of this second way we just call secondary exception handler as we did
 call	\do_sym
 ```
 
-The last method is similar to previous both, but an exception occured with `paranoid=0` and we may use fast method determination of where we are from.
+The last method is similar to previous both, but an exception occurred with `paranoid=0` and we may use fast method determination of where we are from.
 
 Exit from an exception handler
 --------------------------------------------------------------------------------
@@ -516,7 +516,7 @@ Links
 * [system call](http://en.wikipedia.org/wiki/System_call)
 * [swapgs](http://www.felixcloutier.com/x86/SWAPGS.html)
 * [SIGTRAP](https://en.wikipedia.org/wiki/Unix_signal#SIGTRAP)
-* [Per-CPU variables](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-1.html)
+* [Per-CPU variables](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-1)
 * [kgdb](https://en.wikipedia.org/wiki/KGDB)
 * [ACPI](https://en.wikipedia.org/wiki/Advanced_Configuration_and_Power_Interface)
-* [Previous part](https://0xax.gitbooks.io/linux-insides/content/Interrupts/index.html)
+* [Previous part](https://0xax.gitbook.io/linux-insides/summary/interrupts)

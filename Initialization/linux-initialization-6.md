@@ -4,7 +4,7 @@ Kernel initialization. Part 6.
 Architecture-specific initialization, again...
 ================================================================================
 
-In the previous [part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html) we saw architecture-specific (`x86_64` in our case) initialization stuff from the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/setup.c) and finished on `x86_configure_nx` function which sets the `_PAGE_NX` flag depends on support of [NX bit](http://en.wikipedia.org/wiki/NX_bit). As I wrote before `setup_arch` function and `start_kernel` are very big, so in this and in the next part we will continue to learn about architecture-specific initialization process. The next function after `x86_configure_nx` is `parse_early_param`. This function is defined in the [init/main.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c) and as you can understand from its name, this function parses kernel command line and setups different services depends on the given parameters (all kernel command line parameters you can find are in the [Documentation/kernel-parameters.txt](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.rst)). You may remember how we setup `earlyprintk` in the earliest [part](https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-2.html). On the early stage we looked for kernel parameters and their value with the `cmdline_find_option` function and `__cmdline_find_option`, `__cmdline_find_option_bool` helpers from the [arch/x86/boot/cmdline.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/boot/cmdline.c). There we're in the generic kernel part which does not depend on architecture and here we use another approach. If you are reading linux kernel source code, you already note calls like this:
+In the previous [part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-5) we saw architecture-specific (`x86_64` in our case) initialization stuff from the [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/master/arch/x86/kernel/setup.c) and finished on `x86_configure_nx` function which sets the `_PAGE_NX` flag depends on support of [NX bit](http://en.wikipedia.org/wiki/NX_bit). As I wrote before `setup_arch` function and `start_kernel` are very big, so in this and in the next part we will continue to learn about architecture-specific initialization process. The next function after `x86_configure_nx` is `parse_early_param`. This function is defined in the [init/main.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c) and as you can understand from its name, this function parses kernel command line and setups different services depends on the given parameters (all kernel command line parameters you can find are in the [Documentation/kernel-parameters.txt](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.rst)). You may remember how we setup `earlyprintk` in the earliest [part](https://0xax.gitbook.io/linux-insides/summary/booting/linux-bootstrap-2). On the early stage we looked for kernel parameters and their value with the `cmdline_find_option` function and `__cmdline_find_option`, `__cmdline_find_option_bool` helpers from the [arch/x86/boot/cmdline.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/boot/cmdline.c). There we're in the generic kernel part which does not depend on architecture and here we use another approach. If you are reading linux kernel source code, you already note calls like this:
 
 ```C
 early_param("gbpages", parse_direct_gbpages_on);
@@ -78,7 +78,7 @@ void __init parse_early_param(void)
 }
 ```
 
-The `parse_early_param` function defines two static variables. First `done` check that `parse_early_param` already called and the second is temporary storage for kernel command line. After this we copy `boot_command_line` to the temporary command line which we just defined and call the `parse_early_options` function from the same source code `main.c` file. `parse_early_options` calls the `parse_args` function from the [kernel/params.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/) where `parse_args` parses given command line and calls `do_early_param` function. This [function](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c#L413) goes from the ` __setup_start` to `__setup_end`, and calls the function from the `obs_kernel_param` if a parameter is early. After this all services which are depend on early command line parameters were setup and the next call after the `parse_early_param` is `x86_report_nx`. As I wrote in the beginning of this part, we already set `NX-bit` with the `x86_configure_nx`. The next `x86_report_nx` function from the [arch/x86/mm/setup_nx.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/mm/setup_nx.c) just prints information about the `NX`. Note that we call `x86_report_nx` not right after the `x86_configure_nx`, but after the call of the `parse_early_param`. The answer is simple: we call it after the `parse_early_param` because the kernel support `noexec` parameter:
+The `parse_early_param` function defines two static variables. First `done` check that `parse_early_param` already called and the second is temporary storage for kernel command line. After this we copy `boot_command_line` to the temporary command line which we just defined and call the `parse_early_options` function from the same source code `main.c` file. `parse_early_options` calls the `parse_args` function from the [kernel/params.c](https://github.com/torvalds/linux) where `parse_args` parses given command line and calls `do_early_param` function. This [function](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/init/main.c#L413) goes from the ` __setup_start` to `__setup_end`, and calls the function from the `obs_kernel_param` if a parameter is early. After this all services which are depend on early command line parameters were setup and the next call after the `parse_early_param` is `x86_report_nx`. As I wrote in the beginning of this part, we already set `NX-bit` with the `x86_configure_nx`. The next `x86_report_nx` function from the [arch/x86/mm/setup_nx.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/mm/setup_nx.c) just prints information about the `NX`. Note that we call `x86_report_nx` not right after the `x86_configure_nx`, but after the call of the `parse_early_param`. The answer is simple: we call it after the `parse_early_param` because the kernel support `noexec` parameter:
 
 ```
 noexec		[X86]
@@ -89,7 +89,7 @@ noexec		[X86]
 
 We can see it in the booting time:
 
-![NX](http://oi62.tinypic.com/swwxhy.jpg)
+![NX](images/NX.png)
 
 After this we can see call of the:
 
@@ -97,7 +97,7 @@ After this we can see call of the:
 	memblock_x86_reserve_range_setup_data();
 ```
 
-function. This function is defined in the same [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/arch/x86/kernel/setup.c) source code file and remaps memory for the `setup_data` and reserved memory block for the `setup_data` (more about `setup_data` you can read in the previous [part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html) and about `ioremap` and `memblock` you can read in the [Linux kernel memory management](https://0xax.gitbooks.io/linux-insides/content/MM/index.html)).
+function. This function is defined in the same [arch/x86/kernel/setup.c](https://github.com/torvalds/linux/blob/master/arch/x86/kernel/setup.c) source code file and remaps memory for the `setup_data` and reserved memory block for the `setup_data` (more about `setup_data` you can read in the previous [part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-5) and about `ioremap` and `memblock` you can read in the [Linux kernel memory management](https://0xax.gitbook.io/linux-insides/summary/mm)).
 
 In the next step we can see following conditional statement:
 
@@ -128,7 +128,7 @@ int __init acpi_mps_check(void)
 }
 ```
 
-It checks the built-in `MPS` or [MultiProcessor Specification](http://en.wikipedia.org/wiki/MultiProcessor_Specification) table. If `CONFIG_X86_LOCAL_APIC` is set and `CONFIG_x86_MPPAARSE` is not set, `acpi_mps_check` prints warning message if the one of the command line options: `acpi=off`, `acpi=noirq` or `pci=noacpi` passed to the kernel. If `acpi_mps_check` returns `1` it means that we disable local [APIC](http://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller) and clear `X86_FEATURE_APIC` bit in the of the current CPU with the `setup_clear_cpu_cap` macro. (more about CPU mask you can read in the [CPU masks](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-2.html)).
+It checks the built-in `MPS` or [MultiProcessor Specification](http://en.wikipedia.org/wiki/MultiProcessor_Specification) table. If `CONFIG_X86_LOCAL_APIC` is set and `CONFIG_x86_MPPAARSE` is not set, `acpi_mps_check` prints warning message if the one of the command line options: `acpi=off`, `acpi=noirq` or `pci=noacpi` passed to the kernel. If `acpi_mps_check` returns `1` it means that we disable local [APIC](http://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller) and clear `X86_FEATURE_APIC` bit in the of the current CPU with the `setup_clear_cpu_cap` macro. (more about CPU mask you can read in the [CPU masks](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-2)).
 
 Early PCI dump
 --------------------------------------------------------------------------------
@@ -193,7 +193,7 @@ That's all. We will not go deep in the `pci` details, but will see more details 
 Finish with memory parsing
 --------------------------------------------------------------------------------
 
-After the `early_dump_pci_devices`, there are a couple of function related with available memory and [e820](http://en.wikipedia.org/wiki/E820) which we collected in the [First steps in the kernel setup](https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-2.html) part:
+After the `early_dump_pci_devices`, there are a couple of function related with available memory and [e820](http://en.wikipedia.org/wiki/E820) which we collected in the [First steps in the kernel setup](https://0xax.gitbook.io/linux-insides/summary/booting/linux-bootstrap-2) part:
 
 ```C
 	/* update the e820_saved too */
@@ -289,7 +289,7 @@ dmi_scan_machine();
 dmi_memdev_walk();
 ```
 
-First is `dmi_scan_machine` defined in the [drivers/firmware/dmi_scan.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/drivers/firmware/dmi_scan.c). This function goes through the [System Management BIOS](http://en.wikipedia.org/wiki/System_Management_BIOS) structures and extracts information. There are two ways specified to gain access to the `SMBIOS` table: get the pointer to the `SMBIOS` table from the [EFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface)'s configuration table and scanning the physical memory between `0xF0000` and `0x10000` addresses. Let's look on the second approach. `dmi_scan_machine` function remaps memory between `0xf0000` and `0x10000` with the `dmi_early_remap` which just expands to the `early_ioremap`:
+First is `dmi_scan_machine` defined in the [drivers/firmware/dmi_scan.c](https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/drivers/firmware/dmi_scan.c). This function goes through the [System Management BIOS](http://en.wikipedia.org/wiki/System_Management_BIOS) structures and extracts information. There are two ways specified to gain access to the `SMBIOS` table: get the pointer to the `SMBIOS` table from the [EFI](http://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface)'s configuration table and scanning the physical memory between `0xF0000` and `0xFFFFF` addresses, `0x10000` bytes totally. Let's look on the second approach. `dmi_scan_machine` function remaps memory addresses start from `0xF0000` to `0xFFFFF` with size of `0x10000` bytes with the `dmi_early_remap` which just expands to the `early_ioremap`:
 
 ```C
 void __init dmi_scan_machine(void)
@@ -465,7 +465,7 @@ First of all it get the size of the page table buffer, it will be `INIT_PGT_BUF_
 
 Or we can find it with `readelf` util:
 
-![brk area](http://oi61.tinypic.com/71lkeu.jpg)
+![brk area](images/brk_area.png)
 
 After that we got physical address of the new `brk` with the `__pa` macro, we calculate the base address and the end of the page table buffer. In the next step as we got page table buffer, we reserve memory block for the brk area with the `reserve_brk` function:
 
@@ -535,8 +535,8 @@ Links
 * [NX bit](http://en.wikipedia.org/wiki/NX_bit)
 * [Documentation/kernel-parameters.txt](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.rst)
 * [APIC](http://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller)
-* [CPU masks](https://0xax.gitbooks.io/linux-insides/content/Concepts/linux-cpu-2.html)
-* [Linux kernel memory management](https://0xax.gitbooks.io/linux-insides/content/MM/index.html)
+* [CPU masks](https://0xax.gitbook.io/linux-insides/summary/concepts/linux-cpu-2)
+* [Linux kernel memory management](https://0xax.gitbook.io/linux-insides/summary/mm)
 * [PCI](http://en.wikipedia.org/wiki/Conventional_PCI)
 * [e820](http://en.wikipedia.org/wiki/E820)
 * [System Management BIOS](http://en.wikipedia.org/wiki/System_Management_BIOS)
@@ -546,4 +546,4 @@ Links
 * [MultiProcessor Specification](http://www.intel.com/design/pentium/datashts/24201606.pdf)
 * [BSS](http://en.wikipedia.org/wiki/.bss)
 * [SMBIOS specification](http://www.dmtf.org/sites/default/files/standards/documents/DSP0134v2.5Final.pdf)
-* [Previous part](https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html)
+* [Previous part](https://0xax.gitbook.io/linux-insides/summary/initialization/linux-initialization-5)
